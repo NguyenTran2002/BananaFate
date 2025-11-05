@@ -1,0 +1,7 @@
+{
+  "name": "Banana Fate",
+  "description": "A web application to capture images of bananas for a ripeness classification model, following a strict data collection protocol.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}

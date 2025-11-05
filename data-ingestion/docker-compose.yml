@@ -1,0 +1,37 @@
+version: '3.8'
+
+services:
+  data-ingestion-frontend:
+    build:
+      context: ./data-ingestion-frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./data-ingestion-frontend:/app
+      - /app/node_modules
+    depends_on:
+      - data-ingestion-backend
+    networks:
+      - bananafate-network
+    environment:
+      - VITE_BACKEND_URL=  # Empty for local development (uses proxy)
+
+  data-ingestion-backend:
+    build:
+      context: ./data-ingestion-backend
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    env_file:
+      - ./data-ingestion-backend/.env
+    networks:
+      - bananafate-network
+    volumes:
+      - ./data-ingestion-backend:/app
+    environment:
+      - PORT=8080
+
+networks:
+  bananafate-network:
+    driver: bridge
