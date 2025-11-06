@@ -13,7 +13,6 @@ export interface ImageDocument {
   _id: string;
   batchId: string;
   bananaId: string;
-  capturePerson: string;
   captureTime: string;
   stage: string;
   notes: string;
@@ -67,7 +66,6 @@ export interface StageDistribution {
 export interface UpdateMetadataRequest {
   batchId?: string;
   bananaId?: string;
-  capturePerson?: string;
   captureTime?: string;
   stage?: string;
   notes?: string;

@@ -20,7 +20,6 @@ const AuthenticatedApp: React.FC = () => {
   const [metadata, setMetadata] = useState<BananaMetadata>({
     batchId: '',
     bananaId: '',
-    capturePerson: '',
     notes: '',
     captureTime: '',
     stage: '',
@@ -42,7 +41,6 @@ const AuthenticatedApp: React.FC = () => {
     setMetadata({
       batchId: '',
       bananaId: '',
-      capturePerson: '',
       notes: '',
       captureTime: '',
       stage: '',
@@ -149,13 +147,13 @@ const AuthenticatedApp: React.FC = () => {
   const handleStartOver = useCallback(() => {
     setCapturedImage(null);
     setResizedImage(null);
-    setMetadata(prev => ({ 
-      ...prev, 
-      bananaId: '', 
+    setMetadata(prev => ({
+      ...prev,
+      bananaId: '',
       notes: '',
       captureTime: '',
       stage: '',
-    })); // Keep batchId and capturePerson
+    })); // Keep batchId
     setError(null);
     setStep(AppStep.CAPTURING);
   }, []);
@@ -223,7 +221,6 @@ const AuthenticatedApp: React.FC = () => {
                   Banana Details
                 </h3>
                 <div className="space-y-1 text-sm">
-                  <p><strong className="font-medium text-dark-subtext w-28 inline-block">Capture Person:</strong> {metadata.capturePerson}</p>
                   <p><strong className="font-medium text-dark-subtext w-28 inline-block">Batch ID:</strong> {metadata.batchId}</p>
                   <p><strong className="font-medium text-dark-subtext w-28 inline-block">Banana ID:</strong> {metadata.bananaId}</p>
                   <p><strong className="font-medium text-dark-subtext w-28 inline-block">Capture Time:</strong> {metadata.captureTime}</p>

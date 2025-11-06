@@ -52,7 +52,6 @@ class MetadataRequest(BaseModel):
     """Request model for saving image metadata"""
     batchId: str = Field(..., description="Batch identifier for data collection session")
     bananaId: str = Field(..., description="Unique identifier for individual banana")
-    capturePerson: str = Field(..., description="Name of person capturing the image")
     captureTime: str = Field(..., description="ISO 8601 timestamp of capture")
     stage: str = Field(..., description="Ripeness stage (Under Ripe, Barely Ripe, Ripe, Very Ripe, Over Ripe, Death)")
     notes: Optional[str] = Field(default="", description="Optional observation notes")
@@ -66,7 +65,6 @@ class UpdateMetadataRequest(BaseModel):
     """Request model for updating image metadata"""
     batchId: Optional[str] = Field(None, description="Batch identifier")
     bananaId: Optional[str] = Field(None, description="Banana identifier")
-    capturePerson: Optional[str] = Field(None, description="Name of person capturing the image")
     captureTime: Optional[str] = Field(None, description="ISO 8601 timestamp of capture")
     stage: Optional[str] = Field(None, description="Ripeness stage")
     notes: Optional[str] = Field(None, description="Observation notes")
@@ -206,7 +204,6 @@ async def save_metadata(request: MetadataRequest, auth: dict = Depends(verify_au
         {
             "batchId": "batch_001",
             "bananaId": "banana_042",
-            "capturePerson": "Nguyen Tran",
             "captureTime": "2025-11-05T14:30:00Z",
             "stage": "Ripe",
             "notes": "Small brown spots",
@@ -229,7 +226,6 @@ async def save_metadata(request: MetadataRequest, auth: dict = Depends(verify_au
         document = {
             "batchId": request.batchId,
             "bananaId": request.bananaId,
-            "capturePerson": request.capturePerson,
             "captureTime": request.captureTime,
             "stage": request.stage,
             "notes": request.notes,
@@ -420,7 +416,6 @@ async def get_batch_images(batch_id: str, auth: dict = Depends(verify_auth_token
                 "_id": "67abc123...",
                 "batchId": "batch_001",
                 "bananaId": "banana_042",
-                "capturePerson": "Nguyen Tran",
                 "captureTime": "2025-11-05T14:30:00Z",
                 "stage": "Ripe",
                 "notes": "Small brown spots",
@@ -560,8 +555,6 @@ async def update_metadata(document_id: str, request: UpdateMetadataRequest, auth
             update_fields["batchId"] = request.batchId
         if request.bananaId is not None:
             update_fields["bananaId"] = request.bananaId
-        if request.capturePerson is not None:
-            update_fields["capturePerson"] = request.capturePerson
         if request.captureTime is not None:
             update_fields["captureTime"] = request.captureTime
         if request.stage is not None:

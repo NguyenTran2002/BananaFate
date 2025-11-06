@@ -153,7 +153,6 @@ export async function uploadToGcs(signedUrl: string, imageBlob: Blob): Promise<v
 export async function saveMetadata(metadata: {
   batchId: string;
   bananaId: string;
-  capturePerson: string;
   captureTime: string;
   stage: string;
   notes: string;

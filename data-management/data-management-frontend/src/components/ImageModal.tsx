@@ -151,11 +151,6 @@ export function ImageModal({ image, onClose, onEdit, onDelete, onNext, onPreviou
               </div>
 
               <div>
-                <label className="text-xs text-dark-subtext uppercase tracking-wide">Captured By</label>
-                <p className="text-dark-text">{image.capturePerson}</p>
-              </div>
-
-              <div>
                 <label className="text-xs text-dark-subtext uppercase tracking-wide">Capture Time</label>
                 <p className="text-dark-text">{formatDate(image.captureTime)}</p>
               </div>

@@ -24,7 +24,6 @@ export function EditMetadataModal({ image, onClose, onSuccess }: EditMetadataMod
   const [formData, setFormData] = useState({
     batchId: image.batchId,
     bananaId: image.bananaId,
-    capturePerson: image.capturePerson,
     captureTime: image.captureTime,
     stage: image.stage,
     notes: image.notes,
@@ -42,7 +41,6 @@ export function EditMetadataModal({ image, onClose, onSuccess }: EditMetadataMod
     return (
       formData.batchId !== image.batchId ||
       formData.bananaId !== image.bananaId ||
-      formData.capturePerson !== image.capturePerson ||
       formData.captureTime !== image.captureTime ||
       formData.stage !== image.stage ||
       formData.notes !== image.notes
@@ -66,7 +64,6 @@ export function EditMetadataModal({ image, onClose, onSuccess }: EditMetadataMod
       // Only include changed fields
       if (formData.batchId !== image.batchId) updates.batchId = formData.batchId;
       if (formData.bananaId !== image.bananaId) updates.bananaId = formData.bananaId;
-      if (formData.capturePerson !== image.capturePerson) updates.capturePerson = formData.capturePerson;
       if (formData.captureTime !== image.captureTime) updates.captureTime = formData.captureTime;
       if (formData.stage !== image.stage) updates.stage = formData.stage;
       if (formData.notes !== image.notes) updates.notes = formData.notes;
@@ -127,19 +124,6 @@ export function EditMetadataModal({ image, onClose, onSuccess }: EditMetadataMod
                 type="text"
                 value={formData.bananaId}
                 onChange={(e) => handleChange('bananaId', e.target.value)}
-                className="w-full px-4 py-2 bg-ocean-deep border border-dark-subtext/30 rounded-lg
-                         text-dark-text focus:outline-none focus:ring-2 focus:ring-brand-yellow"
-                required
-              />
-            </div>
-
-            {/* Capture Person */}
-            <div>
-              <label className="block text-sm font-medium text-dark-text mb-2">Captured By</label>
-              <input
-                type="text"
-                value={formData.capturePerson}
-                onChange={(e) => handleChange('capturePerson', e.target.value)}
                 className="w-full px-4 py-2 bg-ocean-deep border border-dark-subtext/30 rounded-lg
                          text-dark-text focus:outline-none focus:ring-2 focus:ring-brand-yellow"
                 required
@@ -232,7 +216,6 @@ export function EditMetadataModal({ image, onClose, onSuccess }: EditMetadataMod
 
     if (before.batchId !== after.batchId) changes.push({ field: 'Batch ID', before: before.batchId, after: after.batchId });
     if (before.bananaId !== after.bananaId) changes.push({ field: 'Banana ID', before: before.bananaId, after: after.bananaId });
-    if (before.capturePerson !== after.capturePerson) changes.push({ field: 'Captured By', before: before.capturePerson, after: after.capturePerson });
     if (before.stage !== after.stage) changes.push({ field: 'Stage', before: before.stage, after: after.stage });
     if (before.notes !== after.notes) changes.push({ field: 'Notes', before: before.notes, after: after.notes });
 

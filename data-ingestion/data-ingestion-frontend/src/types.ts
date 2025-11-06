@@ -20,7 +20,6 @@ export enum RipenessStage {
 export interface BananaMetadata {
   batchId: string;
   bananaId: string;
-  capturePerson: string;
   notes: string;
   captureTime: string;
   stage: RipenessStage | '';

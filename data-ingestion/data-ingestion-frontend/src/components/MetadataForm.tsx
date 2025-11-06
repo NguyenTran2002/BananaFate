@@ -76,7 +76,7 @@ const MetadataForm: React.FC<MetadataFormProps> = ({ imageDataUrl, onSubmit, ini
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (formData.batchId.trim() && formData.bananaId.trim() && formData.capturePerson.trim() && formData.stage) {
+    if (formData.batchId.trim() && formData.bananaId.trim() && formData.stage) {
       onSubmit(formData);
     }
   };
@@ -99,20 +99,6 @@ const MetadataForm: React.FC<MetadataFormProps> = ({ imageDataUrl, onSubmit, ini
             {/* Form */}
             <form onSubmit={handleSubmit}>
               <div className="space-y-4">
-                {/* Capture Person */}
-                <div>
-                  <label htmlFor="capturePerson" className="block text-sm font-medium text-dark-subtext">Capture Person</label>
-                  <input
-                    id="capturePerson"
-                    name="capturePerson"
-                    type="text"
-                    value={formData.capturePerson}
-                    onChange={handleChange}
-                    required
-                    className="mt-1 block w-full bg-gray-800 border border-gray-600 rounded-md shadow-sm py-2 px-3 text-dark-text focus:outline-none focus:ring-brand-yellow focus:border-brand-yellow"
-                  />
-                </div>
-
                 {/* Banana ID - Now BEFORE Batch ID */}
                 <div>
                   <label htmlFor="bananaId" className="block text-sm font-medium text-dark-subtext">Banana ID</label>
@@ -233,7 +219,7 @@ const MetadataForm: React.FC<MetadataFormProps> = ({ imageDataUrl, onSubmit, ini
               
               <button
                 type="submit"
-                disabled={!formData.batchId.trim() || !formData.bananaId.trim() || !formData.capturePerson.trim() || !formData.stage}
+                disabled={!formData.batchId.trim() || !formData.bananaId.trim() || !formData.stage}
                 className="w-full mt-8 bg-brand-yellow text-gray-900 font-bold py-3 px-4 rounded-lg shadow-md hover:bg-yellow-400 transition-colors flex items-center justify-center disabled:bg-gray-500 disabled:cursor-not-allowed"
               >
                 <UploadIcon className="w-6 h-6 mr-2" />
