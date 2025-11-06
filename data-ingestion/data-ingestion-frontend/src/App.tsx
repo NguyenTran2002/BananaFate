@@ -286,7 +286,7 @@ const AuthenticatedApp: React.FC = () => {
 
   // Show main app if authenticated
   return (
-    <main className="h-screen overflow-hidden flex flex-col items-center justify-center p-2 sm:p-4 font-sans">
+    <main className="h-screen overflow-hidden flex flex-col items-center pt-3 pb-8 px-2 sm:pt-4 sm:pb-12 sm:px-4 font-sans">
       <FallingBananasBackground />
 
       {/* Token expiry warning banner */}
@@ -307,7 +307,7 @@ const AuthenticatedApp: React.FC = () => {
       )}
 
       {/* Outer container for shape and positioning */}
-      <div className="relative z-10 w-full max-w-md h-[85vh] max-h-[600px] sm:h-[90vh] sm:max-h-[800px] mx-auto rounded-2xl shadow-2xl overflow-hidden">
+      <div className="relative z-10 w-full max-w-md h-[90vh] max-h-[700px] sm:h-[92vh] sm:max-h-[900px] mx-auto rounded-2xl shadow-2xl overflow-hidden">
         {/* Background layer for blur and color */}
         <div className="absolute inset-0 bg-ocean-surface/75 backdrop-blur-md rounded-2xl"></div>
 
