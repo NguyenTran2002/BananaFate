@@ -1,0 +1,11 @@
+[
+  {
+    "origin": [
+      "https://capture.bananafate.com",
+      "https://data-ingestion-frontend-281433271767.us-central1.run.app"
+    ],
+    "method": ["GET", "PUT", "OPTIONS"],
+    "responseHeader": ["Content-Type", "Content-Length"],
+    "maxAgeSeconds": 3600
+  }
+]
