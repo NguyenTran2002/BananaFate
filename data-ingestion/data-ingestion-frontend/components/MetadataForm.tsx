@@ -3,6 +3,7 @@ import { BananaMetadata, RipenessStage } from '../types';
 import { UploadIcon } from './icons/UploadIcon';
 import { QuestionMarkIcon } from './icons/QuestionMarkIcon';
 import RipenessGuideModal from './RipenessGuideModal';
+import { lookupBanana, ApiError } from '../utils/apiClient';
 
 interface MetadataFormProps {
   imageDataUrl: string;
@@ -14,13 +15,63 @@ interface MetadataFormProps {
 
 const STAGES = Object.values(RipenessStage);
 
+type LookupState = 'idle' | 'loading' | 'found' | 'not-found' | 'error';
+
 const MetadataForm: React.FC<MetadataFormProps> = ({ imageDataUrl, onSubmit, initialMetadata, onRecapture, onClose }) => {
   const [formData, setFormData] = useState<BananaMetadata>(initialMetadata);
   const [isGuideOpen, setIsGuideOpen] = useState(false);
+  const [lookupState, setLookupState] = useState<LookupState>('idle');
+  const [lookupMessage, setLookupMessage] = useState<string>('');
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
+
+    // Reset lookup state when banana ID changes
+    if (name === 'bananaId' && lookupState !== 'idle') {
+      setLookupState('idle');
+      setLookupMessage('');
+    }
+  };
+
+  const handleLookup = async () => {
+    const bananaId = formData.bananaId.trim();
+
+    if (!bananaId) {
+      setLookupMessage('Please enter a Banana ID first');
+      setLookupState('error');
+      return;
+    }
+
+    setLookupState('loading');
+    setLookupMessage('');
+
+    try {
+      const result = await lookupBanana(bananaId);
+
+      if (result.found && result.batchId) {
+        setFormData(prev => ({ ...prev, batchId: result.batchId! }));
+        setLookupState('found');
+        setLookupMessage(`Found in ${result.batchId}`);
+      } else {
+        setLookupState('not-found');
+        setLookupMessage('New banana - please enter Batch ID');
+      }
+    } catch (error) {
+      console.error('Lookup failed:', error);
+      setLookupState('error');
+      if (error instanceof ApiError) {
+        setLookupMessage(`Lookup failed: ${error.message}`);
+      } else {
+        setLookupMessage('Lookup failed - please try again');
+      }
+    }
+  };
+
+  const handleClearLookup = () => {
+    setLookupState('idle');
+    setLookupMessage('');
+    setFormData(prev => ({ ...prev, batchId: '' }));
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -48,6 +99,7 @@ const MetadataForm: React.FC<MetadataFormProps> = ({ imageDataUrl, onSubmit, ini
             {/* Form */}
             <form onSubmit={handleSubmit}>
               <div className="space-y-4">
+                {/* Capture Person */}
                 <div>
                   <label htmlFor="capturePerson" className="block text-sm font-medium text-dark-subtext">Capture Person</label>
                   <input
@@ -60,8 +112,54 @@ const MetadataForm: React.FC<MetadataFormProps> = ({ imageDataUrl, onSubmit, ini
                     className="mt-1 block w-full bg-gray-800 border border-gray-600 rounded-md shadow-sm py-2 px-3 text-dark-text focus:outline-none focus:ring-brand-yellow focus:border-brand-yellow"
                   />
                 </div>
+
+                {/* Banana ID - Now BEFORE Batch ID */}
                 <div>
-                  <label htmlFor="batchId" className="block text-sm font-medium text-dark-subtext">Batch ID</label>
+                  <label htmlFor="bananaId" className="block text-sm font-medium text-dark-subtext">Banana ID</label>
+                  <div className="flex gap-2 mt-1">
+                    <input
+                      id="bananaId"
+                      name="bananaId"
+                      type="text"
+                      value={formData.bananaId}
+                      onChange={handleChange}
+                      required
+                      className="block flex-1 bg-gray-800 border border-gray-600 rounded-md shadow-sm py-2 px-3 text-dark-text focus:outline-none focus:ring-brand-yellow focus:border-brand-yellow"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleLookup}
+                      disabled={!formData.bananaId.trim() || lookupState === 'loading'}
+                      className="px-4 py-2 bg-brand-yellow text-gray-900 font-semibold rounded-md hover:bg-yellow-400 transition-colors disabled:bg-gray-600 disabled:text-gray-400 disabled:cursor-not-allowed whitespace-nowrap"
+                    >
+                      {lookupState === 'loading' ? 'Looking up...' : 'Lookup Batch'}
+                    </button>
+                  </div>
+                  {lookupMessage && (
+                    <p className={`mt-1 text-sm ${
+                      lookupState === 'found' ? 'text-green-400' :
+                      lookupState === 'not-found' ? 'text-yellow-400' :
+                      'text-red-400'
+                    }`}>
+                      {lookupMessage}
+                    </p>
+                  )}
+                </div>
+
+                {/* Batch ID - Now AFTER Banana ID */}
+                <div>
+                  <div className="flex items-center justify-between">
+                    <label htmlFor="batchId" className="block text-sm font-medium text-dark-subtext">Batch ID</label>
+                    {lookupState === 'found' && (
+                      <button
+                        type="button"
+                        onClick={handleClearLookup}
+                        className="text-xs text-dark-subtext hover:text-brand-yellow transition-colors"
+                      >
+                        Clear
+                      </button>
+                    )}
+                  </div>
                   <input
                     id="batchId"
                     name="batchId"
@@ -69,20 +167,21 @@ const MetadataForm: React.FC<MetadataFormProps> = ({ imageDataUrl, onSubmit, ini
                     value={formData.batchId}
                     onChange={handleChange}
                     required
-                    className="mt-1 block w-full bg-gray-800 border border-gray-600 rounded-md shadow-sm py-2 px-3 text-dark-text focus:outline-none focus:ring-brand-yellow focus:border-brand-yellow"
+                    readOnly={lookupState === 'found'}
+                    className={`mt-1 block w-full border rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-brand-yellow focus:border-brand-yellow ${
+                      lookupState === 'found'
+                        ? 'bg-gray-700 border-green-500 text-dark-text cursor-default'
+                        : 'bg-gray-800 border-gray-600 text-dark-text'
+                    }`}
                   />
-                </div>
-                <div>
-                  <label htmlFor="bananaId" className="block text-sm font-medium text-dark-subtext">Banana ID</label>
-                  <input
-                    id="bananaId"
-                    name="bananaId"
-                    type="text"
-                    value={formData.bananaId}
-                    onChange={handleChange}
-                    required
-                    className="mt-1 block w-full bg-gray-800 border border-gray-600 rounded-md shadow-sm py-2 px-3 text-dark-text focus:outline-none focus:ring-brand-yellow focus:border-brand-yellow"
-                  />
+                  {lookupState === 'found' && (
+                    <p className="mt-1 text-xs text-green-400 flex items-center">
+                      <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                      </svg>
+                      Auto-filled from lookup
+                    </p>
+                  )}
                 </div>
                 <div>
                   <label htmlFor="captureTime" className="block text-sm font-medium text-dark-subtext">Capture Time</label>

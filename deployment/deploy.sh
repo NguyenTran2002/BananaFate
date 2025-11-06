@@ -61,11 +61,10 @@ select_services() {
   echo "Note: Options 1 and 3 deploy the same backend service with different features"
   echo ""
 
-  # Initialize selection array
-  declare -g -A SELECTED_SERVICES
-  SELECTED_SERVICES[backend]=false
-  SELECTED_SERVICES[ingestion_frontend]=false
-  SELECTED_SERVICES[management_frontend]=false
+  # Initialize selection variables (Bash 3.2 compatible)
+  DEPLOY_BACKEND=false
+  DEPLOY_INGESTION_FRONTEND=false
+  DEPLOY_MANAGEMENT_FRONTEND=false
 
   while true; do
     echo ""
@@ -73,9 +72,9 @@ select_services() {
 
     # Check for 'all' option
     if [ "${selections[0]}" = "all" ]; then
-      SELECTED_SERVICES[backend]=true
-      SELECTED_SERVICES[ingestion_frontend]=true
-      SELECTED_SERVICES[management_frontend]=true
+      DEPLOY_BACKEND=true
+      DEPLOY_INGESTION_FRONTEND=true
+      DEPLOY_MANAGEMENT_FRONTEND=true
       break
     fi
 
@@ -84,13 +83,13 @@ select_services() {
     for num in "${selections[@]}"; do
       case $num in
         1|3)
-          SELECTED_SERVICES[backend]=true
+          DEPLOY_BACKEND=true
           ;;
         2)
-          SELECTED_SERVICES[ingestion_frontend]=true
+          DEPLOY_INGESTION_FRONTEND=true
           ;;
         4)
-          SELECTED_SERVICES[management_frontend]=true
+          DEPLOY_MANAGEMENT_FRONTEND=true
           ;;
         *)
           echo "Invalid selection: $num"
@@ -107,23 +106,23 @@ select_services() {
   # Display selected services
   echo ""
   echo "Selected services:"
-  if [ "${SELECTED_SERVICES[backend]}" = "true" ]; then
+  if [ "$DEPLOY_BACKEND" = "true" ]; then
     echo "  ✓ data-ingestion-backend (with management features)"
   fi
-  if [ "${SELECTED_SERVICES[ingestion_frontend]}" = "true" ]; then
+  if [ "$DEPLOY_INGESTION_FRONTEND" = "true" ]; then
     echo "  ✓ data-ingestion-frontend"
   fi
-  if [ "${SELECTED_SERVICES[management_frontend]}" = "true" ]; then
+  if [ "$DEPLOY_MANAGEMENT_FRONTEND" = "true" ]; then
     echo "  ✓ data-management-frontend"
   fi
   echo ""
 
   # Validate dependencies
-  if [ "${SELECTED_SERVICES[management_frontend]}" = "true" ] && [ "${SELECTED_SERVICES[backend]}" = "false" ]; then
+  if [ "$DEPLOY_MANAGEMENT_FRONTEND" = "true" ] && [ "$DEPLOY_BACKEND" = "false" ]; then
     log_warning "Warning: data-management-frontend requires backend to be deployed/updated"
     read -p "Deploy backend as well? (y/n): " deploy_backend
     if [[ "$deploy_backend" =~ ^[Yy]$ ]]; then
-      SELECTED_SERVICES[backend]=true
+      DEPLOY_BACKEND=true
     else
       log_warning "Proceeding without backend update. Management features may not work."
     fi
@@ -154,7 +153,7 @@ deploy_all() {
 # Deploy selected services
 deploy_selected() {
   # Deploy backend first if selected
-  if [ "${SELECTED_SERVICES[backend]}" = "true" ]; then
+  if [ "$DEPLOY_BACKEND" = "true" ]; then
     echo ""
     "$SCRIPT_DIR/deploy-data-ingestion-backend.sh"
   fi
@@ -162,12 +161,12 @@ deploy_selected() {
   # Deploy frontends in parallel (they're independent)
   local pids=()
 
-  if [ "${SELECTED_SERVICES[ingestion_frontend]}" = "true" ]; then
+  if [ "$DEPLOY_INGESTION_FRONTEND" = "true" ]; then
     echo ""
     "$SCRIPT_DIR/deploy-data-ingestion-frontend.sh"
   fi
 
-  if [ "${SELECTED_SERVICES[management_frontend]}" = "true" ]; then
+  if [ "$DEPLOY_MANAGEMENT_FRONTEND" = "true" ]; then
     echo ""
     "$SCRIPT_DIR/deploy-data-management-frontend.sh"
   fi
@@ -182,19 +181,19 @@ show_summary() {
   echo ""
 
   # Check which services were deployed and show their URLs
-  if [ "${SELECTED_SERVICES[backend]}" = "true" ] || [ "$1" = "all" ]; then
+  if [ "$DEPLOY_BACKEND" = "true" ] || [ "$1" = "all" ]; then
     echo "Backend API:"
     echo "  $BACKEND_URL"
     echo ""
   fi
 
-  if [ "${SELECTED_SERVICES[ingestion_frontend]}" = "true" ] || [ "$1" = "all" ]; then
+  if [ "$DEPLOY_INGESTION_FRONTEND" = "true" ] || [ "$1" = "all" ]; then
     echo "Data Ingestion App (Public):"
     echo "  $DATA_INGESTION_FRONTEND_URL"
     echo ""
   fi
 
-  if [ "${SELECTED_SERVICES[management_frontend]}" = "true" ] || [ "$1" = "all" ]; then
+  if [ "$DEPLOY_MANAGEMENT_FRONTEND" = "true" ] || [ "$1" = "all" ]; then
     echo "Data Management Portal (Password Protected):"
     echo "  $DATA_MANAGEMENT_FRONTEND_URL"
     echo "  Password: $ADMIN_PASSWORD"

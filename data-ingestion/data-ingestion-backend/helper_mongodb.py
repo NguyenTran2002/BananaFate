@@ -6,7 +6,7 @@ from pymongo import MongoClient
 import os
 from dotenv import load_dotenv
 
-load_dotenv(override=True)
+load_dotenv(override=False)  # Docker env vars take precedence in production
 
 def connect_to_mongo():
     """

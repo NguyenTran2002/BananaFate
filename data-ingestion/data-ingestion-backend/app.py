@@ -255,6 +255,67 @@ async def save_metadata(request: MetadataRequest):
             print(f"❌ {error_msg}")
         raise HTTPException(status_code=500, detail=error_msg)
 
+@app.get("/lookup-banana/{banana_id}")
+async def lookup_banana(banana_id: str):
+    """
+    Look up batch ID for a given banana ID (public endpoint for ingestion workflow).
+
+    This endpoint helps minimize data entry errors by auto-filling the batch ID
+    when a banana ID is recognized from previous captures.
+
+    Args:
+        banana_id: Banana identifier to look up
+
+    Response (found):
+        {
+            "found": true,
+            "batchId": "batch_001"
+        }
+
+    Response (not found):
+        {
+            "found": false
+        }
+
+    Raises:
+        HTTPException: 500 if lookup fails
+    """
+    try:
+        collection = get_collection()
+
+        # Find the most recent entry for this banana ID
+        results = list(collection.find(
+            {"bananaId": banana_id}
+        ).sort("captureTime", -1).limit(1))
+
+        result = results[0] if results else None
+
+        if result:
+            if not IS_PRODUCTION:
+                print(f"✅ Lookup found: {banana_id} → {result['batchId']}")
+
+            return {
+                "found": True,
+                "batchId": result['batchId']
+            }
+        else:
+            if not IS_PRODUCTION:
+                print(f"ℹ️ Lookup not found: {banana_id} (new banana)")
+
+            return {
+                "found": False
+            }
+    except Exception as e:
+        import traceback
+        error_details = f"{type(e).__name__}: {str(e)}\n{traceback.format_exc()}"
+        print(f"❌ Lookup error: {error_details}")  # Always print, even in production
+
+        # Return detailed error for debugging (temporary)
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to lookup banana: {type(e).__name__}: {str(e)}"
+        )
+
 # ============================================================================
 # MANAGEMENT & ANALYTICS ENDPOINTS (New in v2.0)
 # ============================================================================

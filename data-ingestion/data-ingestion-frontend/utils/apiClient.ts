@@ -147,3 +147,43 @@ export async function saveMetadata(metadata: {
     throw error;
   }
 }
+
+/**
+ * Look up batch ID for a given banana ID
+ */
+export async function lookupBanana(
+  bananaId: string
+): Promise<{ found: boolean; batchId?: string }> {
+  console.log('[API] Looking up banana:', bananaId);
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+
+  try {
+    const response = await fetch(`${BACKEND_URL}/lookup-banana/${encodeURIComponent(bananaId)}`, {
+      method: 'GET',
+      signal: controller.signal,
+    });
+
+    clearTimeout(timeoutId);
+
+    console.log('[API] Lookup response:', response.status, response.statusText);
+
+    if (!response.ok) {
+      const error = await response.text();
+      console.error('[API] Lookup failed:', response.status, error);
+      throw new ApiError(response.status, `Failed to lookup banana: ${error}`);
+    }
+
+    const result = await response.json();
+    console.log('[API] Lookup result:', result.found ? `✓ Found in ${result.batchId}` : 'ℹ Not found (new banana)');
+    return result;
+  } catch (error) {
+    clearTimeout(timeoutId);
+    if (error.name === 'AbortError') {
+      console.error('[API] Lookup timed out after 30 seconds');
+      throw new ApiError(408, 'Request timed out - please check your connection');
+    }
+    throw error;
+  }
+}

@@ -25,3 +25,8 @@ export interface BananaMetadata {
   captureTime: string;
   stage: RipenessStage | '';
 }
+
+export interface BananaLookupResult {
+  found: boolean;
+  batchId?: string;
+}
