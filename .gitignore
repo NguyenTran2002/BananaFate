@@ -110,3 +110,6 @@ gcloud-config/
 
 # Docker
 .dockerignore
+
+# Deployment artifacts
+.backend_url

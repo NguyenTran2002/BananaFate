@@ -18,6 +18,11 @@ ARG GCS_PROJECT_ID
 ARG GCS_BUCKET_NAME
 ARG GCS_SERVICE_ACCOUNT_EMAIL
 
+# Build arguments for data management features
+ARG MANAGEMENT_PASSWORD_HASH
+ARG JWT_SECRET
+ARG JWT_EXPIRATION_HOURS=8
+
 # Set environment variables from build args
 ENV username=${username}
 ENV password=${password}
@@ -25,6 +30,11 @@ ENV server_address=${server_address}
 ENV GCS_PROJECT_ID=${GCS_PROJECT_ID}
 ENV GCS_BUCKET_NAME=${GCS_BUCKET_NAME}
 ENV GCS_SERVICE_ACCOUNT_EMAIL=${GCS_SERVICE_ACCOUNT_EMAIL}
+
+# Set environment variables for data management
+ENV MANAGEMENT_PASSWORD_HASH=${MANAGEMENT_PASSWORD_HASH}
+ENV JWT_SECRET=${JWT_SECRET}
+ENV JWT_EXPIRATION_HOURS=${JWT_EXPIRATION_HOURS}
 
 # Cloud Run standard port
 EXPOSE 8080
