@@ -58,10 +58,8 @@ const AuthenticatedApp: React.FC = () => {
   const handleCapture = useCallback(async (imageDataUrl: string) => {
     try {
       setCapturedImage(imageDataUrl);
-      // TEMP DIAGNOSTIC: Skip resize to verify actual capture resolutions
-      // const resized = await resizeImage(imageDataUrl, 1024, 1024);
-      // setResizedImage(resized);
-      setResizedImage(imageDataUrl); // Use original resolution
+      const resized = await resizeImage(imageDataUrl, 1024, 1024);
+      setResizedImage(resized);
       setStep(AppStep.PREVIEW);
     } catch (err) {
       handleError('Failed to process image. Please try again.');
