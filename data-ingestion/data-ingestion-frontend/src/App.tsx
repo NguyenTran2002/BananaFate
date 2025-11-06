@@ -1,6 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import { AppStep, BananaMetadata } from './types';
-import CameraCapture from './components/CameraCapture';
+import SmartCameraCapture from './components/SmartCameraCapture';
 import PreviewScreen from './components/PreviewScreen';
 import MetadataForm from './components/MetadataForm';
 import { SpinnerIcon } from './components/icons/SpinnerIcon';
@@ -58,8 +58,10 @@ const AuthenticatedApp: React.FC = () => {
   const handleCapture = useCallback(async (imageDataUrl: string) => {
     try {
       setCapturedImage(imageDataUrl);
-      const resized = await resizeImage(imageDataUrl, 1024, 1024);
-      setResizedImage(resized);
+      // TEMP DIAGNOSTIC: Skip resize to verify actual capture resolutions
+      // const resized = await resizeImage(imageDataUrl, 1024, 1024);
+      // setResizedImage(resized);
+      setResizedImage(imageDataUrl); // Use original resolution
       setStep(AppStep.PREVIEW);
     } catch (err) {
       handleError('Failed to process image. Please try again.');
@@ -163,7 +165,7 @@ const AuthenticatedApp: React.FC = () => {
       case AppStep.WELCOME:
         return <WelcomeScreen onStart={handleStartCapture} />;
       case AppStep.CAPTURING:
-        return <CameraCapture onCapture={handleCapture} onError={handleError} onClose={handleReset} />;
+        return <SmartCameraCapture onCapture={handleCapture} onError={handleError} onClose={handleReset} />;
       case AppStep.PREVIEW:
         return (
           resizedImage && (
@@ -284,7 +286,7 @@ const AuthenticatedApp: React.FC = () => {
 
   // Show main app if authenticated
   return (
-    <main className="h-screen overflow-hidden flex flex-col items-center justify-center p-2 sm:p-4 font-sans" style={{ paddingTop: 'max(0.5rem, env(safe-area-inset-top))', paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom))' }}>
+    <main className="h-screen overflow-hidden flex flex-col items-center justify-center p-2 sm:p-4 font-sans">
       <FallingBananasBackground />
 
       {/* Token expiry warning banner */}
