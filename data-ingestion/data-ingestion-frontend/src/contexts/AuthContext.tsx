@@ -4,7 +4,7 @@
  */
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { login as apiLogin } from '../utils/apiClient';
+import { login as apiLogin, setLogoutCallback } from '../utils/apiClient';
 import {
   storeAuthToken,
   clearAuthToken,
@@ -30,6 +30,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [error, setError] = useState<string | null>(null);
   const [tokenExpiryWarning, setTokenExpiryWarning] = useState(false);
 
+  // Logout function
+  const logout = () => {
+    clearAuthToken();
+    setIsAuthenticated(false);
+    setError(null);
+    setTokenExpiryWarning(false);
+    console.log('[AUTH] Logged out');
+  };
+
+  // Register logout callback with apiClient
+  useEffect(() => {
+    setLogoutCallback(logout);
+  }, []);
+
   // Check authentication status on mount and periodically
   useEffect(() => {
     const checkAuth = () => {
@@ -49,8 +63,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     // Check token expiry every minute
     const interval = setInterval(() => {
-      if (checkIsAuthenticated()) {
+      const authenticated = checkIsAuthenticated();
+
+      if (authenticated) {
         checkTokenExpiry();
+      } else {
+        // Token expired - redirect to login
+        setIsAuthenticated(false);
+        setTokenExpiryWarning(false);
+        console.log('[AUTH] Token expired during periodic check');
       }
     }, 60000); // 1 minute
 
@@ -88,14 +109,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const logout = () => {
-    clearAuthToken();
-    setIsAuthenticated(false);
-    setError(null);
-    setTokenExpiryWarning(false);
-    console.log('[AUTH] Logged out');
   };
 
   const dismissExpiryWarning = () => {

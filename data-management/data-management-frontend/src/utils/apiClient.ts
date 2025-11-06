@@ -19,6 +19,16 @@ const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || '';
 // API timeout (30 seconds)
 const API_TIMEOUT = 30000;
 
+// Logout callback for automatic logout on auth failures
+let logoutCallback: (() => void) | null = null;
+
+/**
+ * Register a callback to be called when authentication fails
+ */
+export function setLogoutCallback(callback: () => void): void {
+  logoutCallback = callback;
+}
+
 class ApiError extends Error {
   constructor(
     message: string,
@@ -40,6 +50,11 @@ async function makeAuthenticatedRequest<T>(
   const token = localStorage.getItem('authToken');
 
   if (!token) {
+    // Automatically logout if no token found
+    if (logoutCallback) {
+      console.error('[API] No authentication token found, logging out automatically');
+      logoutCallback();
+    }
     throw new ApiError('No authentication token found', 401);
   }
 
@@ -61,6 +76,13 @@ async function makeAuthenticatedRequest<T>(
 
     if (!response.ok) {
       const errorText = await response.text();
+
+      // Automatically logout on authentication failures
+      if ((response.status === 401 || response.status === 403) && logoutCallback) {
+        console.error('[API] Authentication failed, logging out automatically');
+        logoutCallback();
+      }
+
       throw new ApiError(
         errorText || `HTTP ${response.status}`,
         response.status,

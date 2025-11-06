@@ -274,8 +274,8 @@ const AuthenticatedApp: React.FC = () => {
   // Show loading spinner while checking authentication
   if (isLoading) {
     return (
-      <main className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-600 via-blue-500 to-blue-600">
-        <SpinnerIcon className="w-16 h-16 text-white" />
+      <main className="min-h-screen flex items-center justify-center bg-gradient-to-br from-ocean-deep via-ocean-surface to-ocean-deep">
+        <SpinnerIcon className="w-16 h-16 text-brand-yellow" />
       </main>
     );
   }
@@ -287,7 +287,7 @@ const AuthenticatedApp: React.FC = () => {
 
   // Show main app if authenticated
   return (
-    <main className="min-h-screen flex flex-col items-center justify-center p-4 font-sans">
+    <main className="h-screen overflow-hidden flex flex-col items-center justify-center p-2 sm:p-4 font-sans" style={{ paddingTop: 'max(0.5rem, env(safe-area-inset-top))', paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom))' }}>
       <FallingBananasBackground />
 
       {/* Token expiry warning banner */}
@@ -308,13 +308,13 @@ const AuthenticatedApp: React.FC = () => {
       )}
 
       {/* Outer container for shape and positioning */}
-      <div className="relative z-10 w-full max-w-md h-[90vh] max-h-[800px] mx-auto rounded-2xl shadow-2xl overflow-hidden">
+      <div className="relative z-10 w-full max-w-md h-[85vh] max-h-[600px] sm:h-[90vh] sm:max-h-[800px] mx-auto rounded-2xl shadow-2xl overflow-hidden">
         {/* Background layer for blur and color */}
         <div className="absolute inset-0 bg-ocean-surface/75 backdrop-blur-md rounded-2xl"></div>
 
         {/* Content layer */}
         <div className="relative z-10 h-full flex flex-col">
-          <div className="p-6 flex-shrink-0 border-b border-gray-700/50">
+          <div className="p-4 sm:p-6 flex-shrink-0 border-b border-gray-700/50">
             <h1 className="text-2xl font-bold text-center text-brand-yellow">
               {step === AppStep.WELCOME ? 'Banana Fate' :
                step === AppStep.METADATA ? 'Document Banana' :

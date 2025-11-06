@@ -10,6 +10,16 @@ import { getAuthToken } from './authUtils';
 // In production: full backend URL (e.g., https://data-ingestion-backend-xxx.run.app)
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || '';
 
+// Logout callback for automatic logout on auth failures
+let logoutCallback: (() => void) | null = null;
+
+/**
+ * Register a callback to be called when authentication fails
+ */
+export function setLogoutCallback(callback: () => void): void {
+  logoutCallback = callback;
+}
+
 export class ApiError extends Error {
   constructor(public status: number, message: string) {
     super(message);
@@ -74,6 +84,13 @@ export async function generateSignedUrl(
     if (!response.ok) {
       const error = await response.text();
       console.error('[API] Signed URL request failed:', response.status, error);
+
+      // Automatically logout on authentication failures
+      if ((response.status === 401 || response.status === 403) && logoutCallback) {
+        console.error('[API] Authentication failed, logging out automatically');
+        logoutCallback();
+      }
+
       throw new ApiError(response.status, `Failed to generate signed URL: ${error}`);
     }
 
@@ -169,6 +186,13 @@ export async function saveMetadata(metadata: {
     if (!response.ok) {
       const error = await response.text();
       console.error('[API] Save metadata failed:', response.status, error);
+
+      // Automatically logout on authentication failures
+      if ((response.status === 401 || response.status === 403) && logoutCallback) {
+        console.error('[API] Authentication failed, logging out automatically');
+        logoutCallback();
+      }
+
       throw new ApiError(response.status, `Failed to save metadata: ${error}`);
     }
 
@@ -216,6 +240,13 @@ export async function lookupBanana(
     if (!response.ok) {
       const error = await response.text();
       console.error('[API] Lookup failed:', response.status, error);
+
+      // Automatically logout on authentication failures
+      if ((response.status === 401 || response.status === 403) && logoutCallback) {
+        console.error('[API] Authentication failed, logging out automatically');
+        logoutCallback();
+      }
+
       throw new ApiError(response.status, `Failed to lookup banana: ${error}`);
     }
 

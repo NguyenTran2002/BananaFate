@@ -2,6 +2,17 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Prevent page scrolling - keep floating window fixed and centered */
+html, body {
+  overflow: hidden;
+  height: 100%;
+  width: 100%;
+  position: fixed;
+  overscroll-behavior: none; /* Prevent iOS rubber-band effect */
+  touch-action: none; /* Prevent touch scrolling on mobile */
+  -webkit-overflow-scrolling: auto; /* Disable momentum scrolling */
+}
+
 /* Custom scrollbar hiding */
 @layer utilities {
   .no-scrollbar::-webkit-scrollbar {

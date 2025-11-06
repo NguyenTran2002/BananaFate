@@ -57,7 +57,7 @@ export function clearAuthToken(): void {
 }
 
 /**
- * Get remaining time until token expiration (in seconds)
+ * Get token expiration timestamp (in milliseconds)
  */
 export function getTokenExpirationTime(): number | null {
   const expiration = localStorage.getItem(EXPIRATION_KEY);
@@ -66,8 +66,5 @@ export function getTokenExpirationTime(): number | null {
     return null;
   }
 
-  const expirationTime = parseInt(expiration, 10);
-  const remainingMs = expirationTime - Date.now();
-
-  return Math.max(0, Math.floor(remainingMs / 1000));
+  return parseInt(expiration, 10);
 }

@@ -116,27 +116,25 @@ const MetadataForm: React.FC<MetadataFormProps> = ({ imageDataUrl, onSubmit, ini
                 {/* Banana ID - Now BEFORE Batch ID */}
                 <div>
                   <label htmlFor="bananaId" className="block text-sm font-medium text-dark-subtext">Banana ID</label>
-                  <div className="flex gap-2 mt-1">
-                    <input
-                      id="bananaId"
-                      name="bananaId"
-                      type="text"
-                      value={formData.bananaId}
-                      onChange={handleChange}
-                      required
-                      className="block flex-1 bg-gray-800 border border-gray-600 rounded-md shadow-sm py-2 px-3 text-dark-text focus:outline-none focus:ring-brand-yellow focus:border-brand-yellow"
-                    />
-                    <button
-                      type="button"
-                      onClick={handleLookup}
-                      disabled={!formData.bananaId.trim() || lookupState === 'loading'}
-                      className="px-4 py-2 bg-brand-yellow text-gray-900 font-semibold rounded-md hover:bg-yellow-400 transition-colors disabled:bg-gray-600 disabled:text-gray-400 disabled:cursor-not-allowed whitespace-nowrap"
-                    >
-                      {lookupState === 'loading' ? 'Looking up...' : 'Lookup Batch'}
-                    </button>
-                  </div>
+                  <input
+                    id="bananaId"
+                    name="bananaId"
+                    type="text"
+                    value={formData.bananaId}
+                    onChange={handleChange}
+                    required
+                    className="mt-1 block w-full bg-gray-800 border border-gray-600 rounded-md shadow-sm py-2 px-3 text-dark-text focus:outline-none focus:ring-brand-yellow focus:border-brand-yellow"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleLookup}
+                    disabled={!formData.bananaId.trim() || lookupState === 'loading'}
+                    className="mt-2 w-full px-4 py-2 bg-brand-yellow text-gray-900 font-semibold rounded-md hover:bg-yellow-400 transition-colors disabled:bg-gray-600 disabled:text-gray-400 disabled:cursor-not-allowed"
+                  >
+                    {lookupState === 'loading' ? 'Looking up...' : 'Lookup Batch'}
+                  </button>
                   {lookupMessage && (
-                    <p className={`mt-1 text-sm ${
+                    <p className={`mt-2 text-sm ${
                       lookupState === 'found' ? 'text-green-400' :
                       lookupState === 'not-found' ? 'text-yellow-400' :
                       'text-red-400'
