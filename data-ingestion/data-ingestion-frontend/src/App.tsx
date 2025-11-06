@@ -9,8 +9,11 @@ import { resizeImage } from './utils/imageUtils';
 import { generateSignedUrl, uploadToGcs, saveMetadata, ApiError } from './utils/apiClient';
 import WelcomeScreen from './components/WelcomeScreen';
 import FallingBananasBackground from './components/FallingBananasBackground';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { LoginScreen } from './components/LoginScreen';
 
-const App: React.FC = () => {
+const AuthenticatedApp: React.FC = () => {
+  const { isAuthenticated, isLoading, tokenExpiryWarning, dismissExpiryWarning } = useAuth();
   const [step, setStep] = useState<AppStep>(AppStep.WELCOME);
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
   const [resizedImage, setResizedImage] = useState<string | null>(null);
@@ -268,19 +271,52 @@ const App: React.FC = () => {
     }
   };
 
+  // Show loading spinner while checking authentication
+  if (isLoading) {
+    return (
+      <main className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-600 via-blue-500 to-blue-600">
+        <SpinnerIcon className="w-16 h-16 text-white" />
+      </main>
+    );
+  }
+
+  // Show login screen if not authenticated
+  if (!isAuthenticated) {
+    return <LoginScreen />;
+  }
+
+  // Show main app if authenticated
   return (
     <main className="min-h-screen flex flex-col items-center justify-center p-4 font-sans">
       <FallingBananasBackground />
+
+      {/* Token expiry warning banner */}
+      {tokenExpiryWarning && (
+        <div className="fixed top-0 left-0 right-0 z-50 bg-yellow-500 text-gray-900 p-3 shadow-lg">
+          <div className="max-w-4xl mx-auto flex items-center justify-between">
+            <p className="text-sm font-medium">
+              ⚠️ Your session will expire soon. Please complete your current upload and log in again.
+            </p>
+            <button
+              onClick={dismissExpiryWarning}
+              className="text-gray-900 hover:text-gray-700 font-bold ml-4"
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Outer container for shape and positioning */}
       <div className="relative z-10 w-full max-w-md h-[90vh] max-h-[800px] mx-auto rounded-2xl shadow-2xl overflow-hidden">
         {/* Background layer for blur and color */}
         <div className="absolute inset-0 bg-ocean-surface/75 backdrop-blur-md rounded-2xl"></div>
-        
+
         {/* Content layer */}
         <div className="relative z-10 h-full flex flex-col">
           <div className="p-6 flex-shrink-0 border-b border-gray-700/50">
             <h1 className="text-2xl font-bold text-center text-brand-yellow">
-              {step === AppStep.WELCOME ? 'Banana Fate' : 
+              {step === AppStep.WELCOME ? 'Banana Fate' :
                step === AppStep.METADATA ? 'Document Banana' :
                step === AppStep.UPLOADING ? 'Uploading...' :
                step === AppStep.SUCCESS ? 'Banana Captured' : 'Capture Banana'}
@@ -292,6 +328,14 @@ const App: React.FC = () => {
         </div>
       </div>
     </main>
+  );
+};
+
+const App: React.FC = () => {
+  return (
+    <AuthProvider>
+      <AuthenticatedApp />
+    </AuthProvider>
   );
 };
 

@@ -152,7 +152,7 @@ async def health_check():
     }
 
 @app.post("/generate-signed-url")
-async def create_signed_url(request: SignedUrlRequest):
+async def create_signed_url(request: SignedUrlRequest, auth: dict = Depends(verify_auth_token)):
     """
     Generate a GCS signed URL for direct browser upload.
 
@@ -194,7 +194,7 @@ async def create_signed_url(request: SignedUrlRequest):
         raise HTTPException(status_code=500, detail=error_msg)
 
 @app.post("/save-metadata")
-async def save_metadata(request: MetadataRequest):
+async def save_metadata(request: MetadataRequest, auth: dict = Depends(verify_auth_token)):
     """
     Save image metadata to MongoDB after successful GCS upload.
 
@@ -256,15 +256,17 @@ async def save_metadata(request: MetadataRequest):
         raise HTTPException(status_code=500, detail=error_msg)
 
 @app.get("/lookup-banana/{banana_id}")
-async def lookup_banana(banana_id: str):
+async def lookup_banana(banana_id: str, auth: dict = Depends(verify_auth_token)):
     """
-    Look up batch ID for a given banana ID (public endpoint for ingestion workflow).
+    Look up batch ID for a given banana ID.
 
     This endpoint helps minimize data entry errors by auto-filling the batch ID
     when a banana ID is recognized from previous captures.
 
     Args:
         banana_id: Banana identifier to look up
+
+    Requires: Authentication token
 
     Response (found):
         {

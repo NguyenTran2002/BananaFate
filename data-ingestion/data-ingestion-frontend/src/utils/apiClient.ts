@@ -3,6 +3,8 @@
  * Handles communication with the FastAPI backend
  */
 
+import { getAuthToken } from './authUtils';
+
 // Get the backend URL from environment variable (set at build time)
 // In development: empty string (uses Vite proxy)
 // In production: full backend URL (e.g., https://data-ingestion-backend-xxx.run.app)
@@ -13,6 +15,29 @@ export class ApiError extends Error {
     super(message);
     this.name = 'ApiError';
   }
+}
+
+/**
+ * Login with password and receive JWT token
+ */
+export async function login(password: string): Promise<{ token: string; expiresIn: number }> {
+  console.log('[API] Attempting login');
+
+  const response = await fetch(`${BACKEND_URL}/auth/login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ password }),
+  });
+
+  if (!response.ok) {
+    const error = await response.text();
+    console.error('[API] Login failed:', response.status, error);
+    throw new ApiError(response.status, response.status === 401 ? 'Invalid password' : 'Login failed');
+  }
+
+  const result = await response.json();
+  console.log('[API] ✓ Login successful');
+  return result;
 }
 
 /**
@@ -29,9 +54,15 @@ export async function generateSignedUrl(
   const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
 
   try {
+    const token = getAuthToken();
+    const headers: HeadersInit = { 'Content-Type': 'application/json' };
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
     const response = await fetch(`${BACKEND_URL}/generate-signed-url`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers,
       body: JSON.stringify({ filename, contentType }),
       signal: controller.signal,
     });
@@ -118,9 +149,15 @@ export async function saveMetadata(metadata: {
   const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
 
   try {
+    const token = getAuthToken();
+    const headers: HeadersInit = { 'Content-Type': 'application/json' };
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
     const response = await fetch(`${BACKEND_URL}/save-metadata`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers,
       body: JSON.stringify(metadata),
       signal: controller.signal,
     });
@@ -160,8 +197,15 @@ export async function lookupBanana(
   const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
 
   try {
+    const token = getAuthToken();
+    const headers: HeadersInit = {};
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
     const response = await fetch(`${BACKEND_URL}/lookup-banana/${encodeURIComponent(bananaId)}`, {
       method: 'GET',
+      headers,
       signal: controller.signal,
     });
 
