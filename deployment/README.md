@@ -81,9 +81,9 @@ All configuration is in `.env` file in this directory.
 | `ADMIN_PASSWORD` | Password for management portal | `REDACTED` |
 | `GCP_PROJECT_ID` | Your GCP project ID | `banana-fate` |
 | `GCP_REGION` | Deployment region | `us-central1` |
-| `MONGODB_USERNAME` | MongoDB Atlas username | `literal:<your-username>` |
-| `MONGODB_PASSWORD` | MongoDB Atlas password | `literal:<your-password>` |
-| `MONGODB_CLUSTER` | MongoDB cluster address | `literal:<your-cluster>.mongodb.net` |
+| `MONGODB_USERNAME` | MongoDB Atlas username | `<your-username>` |
+| `MONGODB_PASSWORD` | MongoDB Atlas password | `<your-password>` |
+| `MONGODB_CLUSTER` | MongoDB cluster address | `<your-cluster>.mongodb.net` |
 | `GCS_BUCKET_NAME` | GCS bucket for images | `bananafate-images` |
 
 **Security Note:** The `.env` file contains sensitive credentials. Never commit it to git.

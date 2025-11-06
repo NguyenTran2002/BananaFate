@@ -57,7 +57,7 @@ Use proven multi-container architecture patterns with FastAPI for modern async s
 **MongoDB** (Configured):
 - Atlas cluster active in `us-central1`
 - Credentials in `data-ingestion-backend/.env`
-- Connection string: `mongodb+srv://literal:<your-username>:literal:<your-password>@literal:<your-cluster>.mongodb.net/`
+- Connection string: `mongodb+srv://${MONGODB_USERNAME}:${MONGODB_PASSWORD}@${MONGODB_CLUSTER}/`
 - **Gap**: No database/collections created yet
 
 **Google Cloud Project**:
@@ -549,9 +549,9 @@ GCS_BUCKET_NAME=bananafate-images
 **.env** (already exists, update with GCS config):
 ```bash
 # MongoDB Atlas (existing)
-username=literal:<your-username>
-password=literal:<your-password>
-server_address=@literal:<your-cluster>.mongodb.net/
+username=<your-mongodb-username>
+password=<your-mongodb-password>
+server_address=@<your-cluster>.mongodb.net/
 
 # GCS Configuration (add these)
 GCS_PROJECT_ID=banana-fate
@@ -920,7 +920,7 @@ docker-compose up --build
 5. ✅ Check MongoDB for new document:
    ```bash
    # Use MongoDB Compass or mongo shell
-   # Connect to: mongodb+srv://literal:<your-username>:literal:<your-password>@literal:<your-cluster>.mongodb.net/
+   # Connect to: mongodb+srv://${MONGODB_USERNAME}:${MONGODB_PASSWORD}@${MONGODB_CLUSTER}/
    # Database: BananaFate_database
    # Collection: banana_images
    ```
@@ -965,9 +965,9 @@ GCP_REGION=us-central1
 ARTIFACT_REGISTRY_REPO=bananafate
 
 # MongoDB Atlas Credentials
-username=literal:<your-username>
-password=literal:<your-password>
-server_address=@literal:<your-cluster>.mongodb.net/
+username=<your-mongodb-username>
+password=<your-mongodb-password>
+server_address=@<your-cluster>.mongodb.net/
 
 # Google Cloud Storage
 GCS_PROJECT_ID=banana-fate
@@ -1440,7 +1440,7 @@ STEP 2: Deploying Frontend Service
 5. **Verify Data in MongoDB**:
    ```bash
    # Use MongoDB Compass or mongosh
-   # Connection string: mongodb+srv://literal:<your-username>:literal:<your-password>@literal:<your-cluster>.mongodb.net/
+   # Connection string: mongodb+srv://${MONGODB_USERNAME}:${MONGODB_PASSWORD}@${MONGODB_CLUSTER}/
    # Query: db.banana_images.find({batchId: "test_batch_001"})
    ```
 

@@ -239,9 +239,9 @@ cd BananaFate/data-ingestion/data-ingestion-backend
 pip install -r requirements.txt
 
 # Set environment variables
-export username="literal:<your-username>"
-export password="literal:<your-password>"
-export server_address="@literal:<your-cluster>.mongodb.net/"
+export username="${MONGODB_USERNAME}"
+export password="${MONGODB_PASSWORD}"
+export server_address="@${MONGODB_CLUSTER}/"
 export GCS_PROJECT_ID="banana-fate"
 export GCS_BUCKET_NAME="bananafate-images"
 
@@ -317,7 +317,7 @@ gcloud run services describe data-ingestion-backend \
 
 ```bash
 # Check recent documents in MongoDB
-mongosh "mongodb+srv://literal:<your-username>:literal:<your-password>@literal:<your-cluster>.mongodb.net/BananaFate_database"
+mongosh "mongodb+srv://${MONGODB_USERNAME}:${MONGODB_PASSWORD}@${MONGODB_CLUSTER}/BananaFate_database"
 
 # In mongo shell:
 db.banana_images.find().sort({uploadedAt: -1}).limit(5).pretty()

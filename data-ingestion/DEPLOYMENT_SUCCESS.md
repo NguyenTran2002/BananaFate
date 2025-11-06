@@ -111,7 +111,7 @@ Your BananaFate data ingestion application is now live on Google Cloud Run and r
 3. **Verify data in MongoDB**:
    ```bash
    # Use MongoDB Compass or mongosh
-   # Connection: mongodb+srv://literal:<your-username>:literal:<your-password>@literal:<your-cluster>.mongodb.net/
+   # Connection: mongodb+srv://${MONGODB_USERNAME}:${MONGODB_PASSWORD}@${MONGODB_CLUSTER}/
    # Database: BananaFate_database
    # Collection: banana_images
    # Query: { batchId: "test_batch_001" }
