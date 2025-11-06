@@ -286,7 +286,7 @@ const AuthenticatedApp: React.FC = () => {
 
   // Show main app if authenticated
   return (
-    <main className="h-screen overflow-hidden flex flex-col items-center pt-3 pb-8 px-2 sm:pt-4 sm:pb-12 sm:px-4 font-sans">
+    <main className="h-screen overflow-hidden flex flex-col items-center pt-5 pb-5 px-2 sm:pt-8 sm:pb-8 sm:px-4 font-sans">
       <FallingBananasBackground />
 
       {/* Token expiry warning banner */}
