@@ -22,6 +22,23 @@ export interface ImageDocument {
   updatedAt?: string;
 }
 
+// Image quality metadata extracted from GCS blob
+export interface ImageQuality {
+  width: number;
+  height: number;
+  resolution: string;
+  format: string;
+  file_size_bytes: number;
+  file_size_kb: number;
+  file_size_mb: number | null;
+  file_size_formatted: string;
+  aspect_ratio_decimal: number;
+  aspect_ratio_label: string;
+  orientation: 'portrait' | 'landscape' | 'square';
+  compression_quality: number | null;
+  color_mode: string;
+}
+
 // Batch summary
 export interface BatchSummary {
   batchId: string;

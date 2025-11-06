@@ -4,8 +4,8 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { ImageDocument } from '../types';
-import { getSignedReadUrl } from '../utils/apiClient';
+import { ImageDocument, ImageQuality } from '../types';
+import { getSignedReadUrl, getImageQuality } from '../utils/apiClient';
 
 interface ImageModalProps {
   image: ImageDocument;
@@ -21,8 +21,14 @@ export function ImageModal({ image, onClose, onEdit, onDelete, onNext, onPreviou
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Image quality state
+  const [qualityData, setQualityData] = useState<ImageQuality | null>(null);
+  const [qualityLoading, setQualityLoading] = useState(false);
+  const [qualityError, setQualityError] = useState<string | null>(null);
+
   useEffect(() => {
     loadImage();
+    loadQualityData();
   }, [image.objectPath]);
 
   const loadImage = async () => {
@@ -35,6 +41,20 @@ export function ImageModal({ image, onClose, onEdit, onDelete, onNext, onPreviou
       setError(err.message || 'Failed to load image');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadQualityData = async () => {
+    try {
+      setQualityLoading(true);
+      setQualityError(null);
+      const quality = await getImageQuality(image.objectPath);
+      setQualityData(quality);
+    } catch (err: any) {
+      setQualityError(err.message || 'Failed to load image quality');
+      console.error('[ImageModal] Failed to load quality data:', err);
+    } finally {
+      setQualityLoading(false);
     }
   };
 
@@ -171,6 +191,68 @@ export function ImageModal({ image, onClose, onEdit, onDelete, onNext, onPreviou
                 <div>
                   <label className="text-xs text-dark-subtext uppercase tracking-wide">Last Updated</label>
                   <p className="text-dark-text text-sm">{formatDate(image.updatedAt)}</p>
+                </div>
+              )}
+            </div>
+
+            {/* Image Quality Section */}
+            <div className="pt-4 space-y-3 border-t border-brand-yellow/20">
+              <h4 className="text-lg font-bold text-brand-yellow">Image Quality</h4>
+
+              {qualityLoading && (
+                <div className="text-center py-4">
+                  <p className="text-dark-subtext text-sm">Loading quality data...</p>
+                </div>
+              )}
+
+              {qualityError && (
+                <div className="text-center py-2">
+                  <p className="text-red-400 text-sm">{qualityError}</p>
+                </div>
+              )}
+
+              {qualityData && !qualityLoading && (
+                <div className="space-y-3">
+                  <div>
+                    <label className="text-xs text-dark-subtext uppercase tracking-wide">Resolution</label>
+                    <p className="text-dark-text font-medium">{qualityData.resolution}</p>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-xs text-dark-subtext uppercase tracking-wide">Format</label>
+                      <p className="text-dark-text font-medium">{qualityData.format}</p>
+                    </div>
+
+                    <div>
+                      <label className="text-xs text-dark-subtext uppercase tracking-wide">File Size</label>
+                      <p className="text-dark-text font-medium">{qualityData.file_size_formatted}</p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-xs text-dark-subtext uppercase tracking-wide">Aspect Ratio</label>
+                      <p className="text-dark-text font-medium">{qualityData.aspect_ratio_label}</p>
+                    </div>
+
+                    <div>
+                      <label className="text-xs text-dark-subtext uppercase tracking-wide">Orientation</label>
+                      <p className="text-dark-text font-medium capitalize">{qualityData.orientation}</p>
+                    </div>
+                  </div>
+
+                  {qualityData.compression_quality && (
+                    <div>
+                      <label className="text-xs text-dark-subtext uppercase tracking-wide">Compression Quality</label>
+                      <p className="text-dark-text font-medium">{qualityData.compression_quality}%</p>
+                    </div>
+                  )}
+
+                  <div>
+                    <label className="text-xs text-dark-subtext uppercase tracking-wide">Color Mode</label>
+                    <p className="text-dark-text font-medium">{qualityData.color_mode}</p>
+                  </div>
                 </div>
               )}
             </div>

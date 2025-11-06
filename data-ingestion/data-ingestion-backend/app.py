@@ -12,13 +12,27 @@ from datetime import datetime
 from dotenv import load_dotenv
 from bson import ObjectId
 import jwt
+from google.cloud import storage
+from google import auth
+from google.auth.transport import requests as auth_requests
+import logging
+import traceback
 
 from helper_mongodb import get_collection
 from helper_gcs import generate_signed_upload_url
 from helper_gcs_read import generate_signed_read_url
 from helper_auth import verify_password, generate_token, verify_token
+from helper_image_quality import extract_image_quality
 
 load_dotenv(override=True)
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S'
+)
+logger = logging.getLogger(__name__)
 
 # Detect if running on Cloud Run (K_SERVICE environment variable is set by Cloud Run)
 IS_PRODUCTION = os.getenv('K_SERVICE') is not None
@@ -1049,6 +1063,99 @@ async def get_signed_read_url(object_path: str, auth: dict = Depends(verify_auth
         if not IS_PRODUCTION:
             error_msg += f": {str(e)}"
             print(f"❌ {error_msg}")
+        raise HTTPException(status_code=500, detail=error_msg)
+
+@app.get("/image-quality")
+async def get_image_quality(object_path: str, user_auth: dict = Depends(verify_auth_token)):
+    """
+    Extract and return image quality metadata from GCS blob.
+
+    This endpoint downloads the image from GCS and extracts comprehensive
+    quality information including resolution, format, file size, aspect ratio,
+    orientation, and compression details.
+
+    Query Parameters:
+        object_path: Path to object in GCS (e.g., "batch_001/banana_042_1730819400.jpg")
+
+    Requires: Authentication token
+
+    Response:
+        {
+            "width": 3024,
+            "height": 4032,
+            "resolution": "3024 × 4032",
+            "format": "JPEG",
+            "file_size_bytes": 2457600,
+            "file_size_kb": 2400.0,
+            "file_size_mb": 2.34,
+            "file_size_formatted": "2.34 MB",
+            "aspect_ratio_decimal": 0.75,
+            "aspect_ratio_label": "3:4",
+            "orientation": "portrait",
+            "compression_quality": 85,
+            "color_mode": "RGB"
+        }
+    """
+    logger.info(f"[IMAGE-QUALITY] Received request for object_path: {object_path}")
+
+    try:
+        bucket_name = os.getenv('GCS_BUCKET_NAME', 'bananafate-images')
+        project_id = os.getenv('GCS_PROJECT_ID', 'banana-fate')
+
+        logger.info(f"[IMAGE-QUALITY] Using bucket: {bucket_name}, project: {project_id}")
+
+        # Get default credentials
+        logger.info("[IMAGE-QUALITY] Getting default GCP credentials...")
+        credentials, project = auth.default()
+
+        # Refresh credentials to obtain access token
+        logger.info("[IMAGE-QUALITY] Refreshing credentials...")
+        credentials.refresh(auth_requests.Request())
+
+        # Initialize GCS client with refreshed credentials
+        logger.info("[IMAGE-QUALITY] Initializing GCS client...")
+        storage_client = storage.Client(project=project_id or project, credentials=credentials)
+
+        logger.info("[IMAGE-QUALITY] Getting bucket and blob references...")
+        bucket = storage_client.bucket(bucket_name)
+        blob = bucket.blob(object_path)
+
+        # Check if blob exists
+        logger.info(f"[IMAGE-QUALITY] Checking if blob exists: {object_path}")
+        if not blob.exists():
+            logger.error(f"[IMAGE-QUALITY] Blob not found: {object_path}")
+            raise HTTPException(status_code=404, detail=f"Image not found: {object_path}")
+
+        logger.info(f"[IMAGE-QUALITY] Blob exists. Downloading: {object_path}")
+
+        # Download blob as bytes
+        blob_bytes = blob.download_as_bytes()
+        logger.info(f"[IMAGE-QUALITY] Downloaded blob successfully. Size: {len(blob_bytes)} bytes")
+
+        # Extract image quality metadata
+        logger.info(f"[IMAGE-QUALITY] Calling extract_image_quality() with {len(blob_bytes)} bytes...")
+        quality_data = extract_image_quality(blob_bytes)
+
+        logger.info(f"[IMAGE-QUALITY] Successfully extracted quality data for: {object_path}")
+        logger.info(f"[IMAGE-QUALITY] Resolution: {quality_data.get('resolution')}, Format: {quality_data.get('format')}, Size: {quality_data.get('file_size_formatted')}")
+
+        return quality_data
+
+    except HTTPException:
+        # Re-raise HTTP exceptions as-is
+        raise
+    except ValueError as e:
+        # Handle image processing errors
+        error_msg = f"Failed to extract image quality: {str(e)}"
+        logger.error(f"[IMAGE-QUALITY] ValueError: {error_msg}")
+        logger.error(f"[IMAGE-QUALITY] Stack trace:\n{traceback.format_exc()}")
+        raise HTTPException(status_code=422, detail=error_msg)
+    except Exception as e:
+        # Handle other errors (GCS, network, etc.)
+        error_msg = f"Failed to retrieve image quality: {str(e)}"
+        logger.error(f"[IMAGE-QUALITY] Unexpected error: {error_msg}")
+        logger.error(f"[IMAGE-QUALITY] Exception type: {type(e).__name__}")
+        logger.error(f"[IMAGE-QUALITY] Stack trace:\n{traceback.format_exc()}")
         raise HTTPException(status_code=500, detail=error_msg)
 
 # Run server (for local development)

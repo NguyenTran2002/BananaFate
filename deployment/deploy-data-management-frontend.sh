@@ -49,6 +49,41 @@ log_info "Building Docker image from: $FRONTEND_DIR"
 log_info "Backend URL: $BACKEND_URL"
 echo ""
 
+# Verify critical files exist before building
+log_info "Verifying critical frontend files..."
+CRITICAL_FILES=(
+  "package.json"
+  "Dockerfile.prod"
+  "vite.config.ts"
+  "index.html"
+  "src/App.tsx"
+  "index.tsx"
+  "src/components/ImageModal.tsx"
+  "src/components/Dashboard.tsx"
+  "src/contexts/AuthContext.tsx"
+  "src/utils/apiClient.ts"
+  "src/types.ts"
+)
+
+MISSING_FILES=()
+for file in "${CRITICAL_FILES[@]}"; do
+  if [ ! -f "$FRONTEND_DIR/$file" ]; then
+    MISSING_FILES+=("$file")
+  fi
+done
+
+if [ ${#MISSING_FILES[@]} -gt 0 ]; then
+  log_error "Critical files missing from frontend directory:"
+  for file in "${MISSING_FILES[@]}"; do
+    echo "  ❌ $file"
+  done
+  log_error "Build aborted. Please ensure all files are present in: $FRONTEND_DIR"
+  exit 1
+fi
+
+log_success "All critical files verified (${#CRITICAL_FILES[@]} files)"
+echo ""
+
 # Build Docker image with backend URL
 log_info "Building Docker image..."
 docker build \

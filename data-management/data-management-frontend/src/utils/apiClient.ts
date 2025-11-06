@@ -5,6 +5,7 @@
 
 import {
   ImageDocument,
+  ImageQuality,
   BatchSummary,
   BananaSummary,
   AnalyticsCounts,
@@ -228,6 +229,15 @@ export async function getSignedReadUrl(objectPath: string): Promise<{ signedUrl:
   const result = await makeAuthenticatedRequest<{ signedUrl: string }>(
     `/gcs-signed-read-url?object_path=${encodeURIComponent(objectPath)}`
   );
+  return result;
+}
+
+export async function getImageQuality(objectPath: string): Promise<ImageQuality> {
+  console.log('[API] Fetching image quality for:', objectPath);
+  const result = await makeAuthenticatedRequest<ImageQuality>(
+    `/image-quality?object_path=${encodeURIComponent(objectPath)}`
+  );
+  console.log('[API] Image quality retrieved:', result.resolution, result.file_size_formatted);
   return result;
 }
 

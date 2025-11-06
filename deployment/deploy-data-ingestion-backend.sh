@@ -54,6 +54,38 @@ fi
 log_info "Building Docker image from: $BACKEND_DIR"
 echo ""
 
+# Verify critical files exist before building
+log_info "Verifying critical backend files..."
+CRITICAL_FILES=(
+  "app.py"
+  "requirements.txt"
+  "Dockerfile"
+  "helper_mongodb.py"
+  "helper_gcs.py"
+  "helper_gcs_read.py"
+  "helper_auth.py"
+  "helper_image_quality.py"
+)
+
+MISSING_FILES=()
+for file in "${CRITICAL_FILES[@]}"; do
+  if [ ! -f "$BACKEND_DIR/$file" ]; then
+    MISSING_FILES+=("$file")
+  fi
+done
+
+if [ ${#MISSING_FILES[@]} -gt 0 ]; then
+  log_error "Critical files missing from backend directory:"
+  for file in "${MISSING_FILES[@]}"; do
+    echo "  ❌ $file"
+  done
+  log_error "Build aborted. Please ensure all files are present in: $BACKEND_DIR"
+  exit 1
+fi
+
+log_success "All critical files verified (${#CRITICAL_FILES[@]} files)"
+echo ""
+
 # Build Docker image with all build args
 log_info "Building Docker image..."
 docker build \
