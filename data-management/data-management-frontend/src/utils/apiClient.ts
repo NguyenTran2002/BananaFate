@@ -152,9 +152,17 @@ export async function getBatchImages(batchId: string): Promise<ImageDocument[]> 
   return result;
 }
 
-export async function deleteBatch(batchId: string): Promise<{ success: boolean; deletedCount: number }> {
+export interface DeleteResponse {
+  success: boolean;
+  deletedCount: number;
+  gcsDeletedCount?: number;
+  expectedCount?: number;
+  errors?: string[];
+}
+
+export async function deleteBatch(batchId: string): Promise<DeleteResponse> {
   console.log('[API] Deleting batch:', batchId);
-  const result = await makeAuthenticatedRequest<{ success: boolean; deletedCount: number }>(
+  const result = await makeAuthenticatedRequest<DeleteResponse>(
     `/batch/${batchId}`,
     { method: 'DELETE' }
   );
@@ -183,9 +191,9 @@ export async function getBananaTimeline(batchId: string, bananaId: string): Prom
 export async function deleteBanana(
   batchId: string,
   bananaId: string
-): Promise<{ success: boolean; deletedCount: number }> {
+): Promise<DeleteResponse> {
   console.log('[API] Deleting banana:', batchId, bananaId);
-  const result = await makeAuthenticatedRequest<{ success: boolean; deletedCount: number }>(
+  const result = await makeAuthenticatedRequest<DeleteResponse>(
     `/banana/${batchId}/${bananaId}`,
     { method: 'DELETE' }
   );
@@ -214,11 +222,15 @@ export async function updateMetadata(
   return result;
 }
 
+export interface DeleteImageResponse extends DeleteResponse {
+  deletedDocument?: ImageDocument;
+}
+
 export async function deleteImage(
   documentId: string
-): Promise<{ success: boolean; deletedDocument: ImageDocument }> {
+): Promise<DeleteImageResponse> {
   console.log('[API] Deleting image:', documentId);
-  const result = await makeAuthenticatedRequest<{ success: boolean; deletedDocument: ImageDocument }>(
+  const result = await makeAuthenticatedRequest<DeleteImageResponse>(
     `/image/${documentId}`,
     { method: 'DELETE' }
   );
@@ -239,6 +251,51 @@ export async function getImageQuality(objectPath: string): Promise<ImageQuality>
     `/image-quality?object_path=${encodeURIComponent(objectPath)}`
   );
   console.log('[API] Image quality retrieved:', result.resolution, result.file_size_formatted);
+  return result;
+}
+
+// ============================================================================
+// Audit Trail
+// ============================================================================
+
+export interface DeletionAudit {
+  _id: string;
+  timestamp: string;
+  userId: string;
+  operationType: 'image' | 'banana' | 'batch';
+  target: Record<string, any>;
+  deletedCount: number;
+  gcsDeletedCount: number;
+  success: boolean;
+  errors: string[];
+  partialSuccess: boolean;
+}
+
+export interface DeletionAuditResponse {
+  total: number;
+  limit: number;
+  skip: number;
+  audits: DeletionAudit[];
+}
+
+export async function getDeletionAudit(
+  limit: number = 50,
+  skip: number = 0,
+  operationType?: 'image' | 'banana' | 'batch'
+): Promise<DeletionAuditResponse> {
+  console.log('[API] Fetching deletion audit');
+  const params = new URLSearchParams({
+    limit: limit.toString(),
+    skip: skip.toString(),
+  });
+  if (operationType) {
+    params.append('operation_type', operationType);
+  }
+
+  const result = await makeAuthenticatedRequest<DeletionAuditResponse>(
+    `/audit/deletions?${params.toString()}`
+  );
+  console.log('[API] Deletion audit retrieved:', result.total, 'total audits');
   return result;
 }
 

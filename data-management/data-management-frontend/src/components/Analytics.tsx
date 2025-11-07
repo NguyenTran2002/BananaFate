@@ -22,6 +22,7 @@ import {
 import { getAnalyticsCounts, getAnalyticsTimeline, getStageDistribution } from '../utils/apiClient';
 import { AnalyticsCounts, TimelineDataPoint, StageDistribution } from '../types';
 import { StorageAnalytics } from './StorageAnalytics';
+import { DeletionHistory } from './DeletionHistory';
 
 export function Analytics() {
   const [counts, setCounts] = useState<AnalyticsCounts | null>(null);
@@ -273,6 +274,11 @@ export function Analytics() {
       {/* Storage Analytics Section */}
       <div className="pt-8 mt-8 border-t border-brand-yellow/20">
         <StorageAnalytics />
+      </div>
+
+      {/* Deletion History Section */}
+      <div className="pt-8 mt-8 border-t border-brand-yellow/20">
+        <DeletionHistory />
       </div>
     </div>
   );

@@ -69,20 +69,41 @@ export function DeleteConfirmationModal({ type, target, onClose, onSuccess }: De
         case 'image':
           if (!target.documentId) throw new Error('Document ID required');
           result = await deleteImage(target.documentId);
-          setDeletedCount(1);
+          setDeletedCount(result.deletedCount || 1);
           break;
 
         case 'banana':
           if (!target.batchId || !target.bananaId) throw new Error('Batch ID and Banana ID required');
           result = await deleteBanana(target.batchId, target.bananaId);
           setDeletedCount(result.deletedCount);
+
+          // Check for partial success
+          if (result.expectedCount && result.deletedCount !== result.expectedCount) {
+            throw new Error(
+              `Partial deletion: ${result.deletedCount}/${result.expectedCount} records deleted. ` +
+              `Some GCS files may have failed to delete.`
+            );
+          }
           break;
 
         case 'batch':
           if (!target.batchId) throw new Error('Batch ID required');
           result = await deleteBatch(target.batchId);
           setDeletedCount(result.deletedCount);
+
+          // Check for partial success
+          if (result.expectedCount && result.deletedCount !== result.expectedCount) {
+            throw new Error(
+              `Partial deletion: ${result.deletedCount}/${result.expectedCount} records deleted. ` +
+              `Some GCS files may have failed to delete.`
+            );
+          }
           break;
+      }
+
+      // Check for errors in response
+      if (result.errors && result.errors.length > 0) {
+        throw new Error(`Deletion completed with errors: ${result.errors.join('; ')}`);
       }
 
       setSuccess(true);
@@ -91,7 +112,26 @@ export function DeleteConfirmationModal({ type, target, onClose, onSuccess }: De
         onClose();
       }, 2000);
     } catch (err: any) {
-      setError(err.message || 'Failed to delete');
+      // Better error handling
+      let errorMessage = 'Failed to delete';
+
+      if (err.message) {
+        errorMessage = err.message;
+      } else if (err.detail) {
+        if (typeof err.detail === 'object' && err.detail.message) {
+          errorMessage = err.detail.message;
+          if (err.detail.errors && err.detail.errors.length > 0) {
+            errorMessage += '. Errors: ' + err.detail.errors.slice(0, 3).join('; ');
+            if (err.detail.errors.length > 3) {
+              errorMessage += ` (and ${err.detail.errors.length - 3} more)`;
+            }
+          }
+        } else if (typeof err.detail === 'string') {
+          errorMessage = err.detail;
+        }
+      }
+
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }

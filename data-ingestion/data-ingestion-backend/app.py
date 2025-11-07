@@ -615,7 +615,7 @@ async def update_metadata(document_id: str, request: UpdateMetadataRequest, auth
 @app.delete("/image/{document_id}")
 async def delete_image(document_id: str, auth: dict = Depends(verify_auth_token)):
     """
-    Delete a single image (MongoDB record + GCS object).
+    Delete a single image (MongoDB record + GCS object) with transaction-like behavior.
 
     Args:
         document_id: MongoDB document ID
@@ -626,69 +626,57 @@ async def delete_image(document_id: str, auth: dict = Depends(verify_auth_token)
         {
             "success": true,
             "deletedCount": 1,
+            "gcsDeletedCount": 1,
             "deletedDocument": { ... }
         }
+
+    Errors:
+        - 400: Invalid document ID
+        - 404: Document not found
+        - 500: Deletion failed (includes GCS or MongoDB errors)
     """
+    from helper_deletion import delete_image_transaction, DeletionError
+
     try:
         collection = get_collection()
 
-        # Validate document ID
-        try:
-            obj_id = ObjectId(document_id)
-        except Exception:
-            raise HTTPException(status_code=400, detail="Invalid document ID")
+        # Get user ID from auth token
+        user_id = auth.get('userId', 'unknown')
 
-        # Get document for GCS path
-        document = collection.find_one({"_id": obj_id})
-        if not document:
-            raise HTTPException(status_code=404, detail="Document not found")
-
-        # Delete from GCS
-        try:
-            from google.cloud import storage
-            from google import auth
-            from google.auth.transport import requests as auth_requests
-
-            bucket_name = os.getenv('GCS_BUCKET_NAME', 'bananafate-images')
-            project_id = os.getenv('GCS_PROJECT_ID', 'banana-fate')
-
-            credentials, project = auth.default()
-            credentials.refresh(auth_requests.Request())
-            storage_client = storage.Client(project=project_id or project, credentials=credentials)
-
-            bucket = storage_client.bucket(bucket_name)
-            blob = bucket.blob(document['objectPath'])
-            blob.delete()
-
-            if not IS_PRODUCTION:
-                print(f"✅ Deleted GCS object: {document['objectPath']}")
-        except Exception as gcs_error:
-            if not IS_PRODUCTION:
-                print(f"⚠️ GCS deletion failed (continuing): {gcs_error}")
-            # Continue with MongoDB deletion even if GCS fails
-
-        # Delete from MongoDB
-        result = collection.delete_one({"_id": obj_id})
-
-        if not IS_PRODUCTION:
-            print(f"✅ Deleted document: {document_id}")
+        # Perform transactional deletion
+        result = delete_image_transaction(collection, document_id, user_id)
 
         return {
-            "success": True,
-            "deletedCount": result.deleted_count,
-            "deletedDocument": serialize_document(document)
+            "success": result["success"],
+            "deletedCount": result["deletedCount"],
+            "gcsDeletedCount": result["gcsDeletedCount"],
+            "deletedDocument": serialize_document(result["deletedDocument"])
         }
-    except HTTPException:
-        raise
+
+    except ValueError as e:
+        # Invalid ID or not found
+        status_code = 404 if "not found" in str(e).lower() else 400
+        raise HTTPException(status_code=status_code, detail=str(e))
+
+    except DeletionError as e:
+        # Deletion failed with specific errors
+        error_detail = {
+            "message": str(e),
+            "errors": e.gcs_errors if hasattr(e, 'gcs_errors') else []
+        }
+        if not IS_PRODUCTION:
+            print(f"❌ Deletion failed: {e}")
+        raise HTTPException(status_code=500, detail=error_detail)
+
     except Exception as e:
         if not IS_PRODUCTION:
-            print(f"Error deleting image: {e}")
-        raise HTTPException(status_code=500, detail="Failed to delete image")
+            print(f"❌ Unexpected error deleting image: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to delete image: {str(e)}")
 
 @app.delete("/banana/{batch_id}/{banana_id}")
 async def delete_banana(batch_id: str, banana_id: str, auth: dict = Depends(verify_auth_token)):
     """
-    Delete all images of a specific banana (MongoDB + GCS).
+    Delete all images of a specific banana (MongoDB + GCS) with batch deletion.
 
     Args:
         batch_id: Batch identifier
@@ -700,71 +688,73 @@ async def delete_banana(batch_id: str, banana_id: str, auth: dict = Depends(veri
         {
             "success": true,
             "deletedCount": 7,
+            "gcsDeletedCount": 7,
+            "expectedCount": 7,
             "deletedImages": [ ... ]
         }
+
+    Errors:
+        - 404: No images found for banana
+        - 500: Deletion failed (includes GCS or MongoDB errors)
     """
+    from helper_deletion import delete_multiple_images_transaction, DeletionError
+
     try:
         collection = get_collection()
 
-        # Get all images for this banana
-        images = list(collection.find({
+        # Get user ID from auth token
+        user_id = auth.get('userId', 'unknown')
+
+        # Prepare filter query
+        filter_query = {
             "batchId": batch_id,
             "bananaId": banana_id
-        }))
+        }
 
-        if not images:
-            raise HTTPException(status_code=404, detail="No images found for this banana")
-
-        # Delete from GCS
-        from google.cloud import storage
-        from google import auth
-        from google.auth.transport import requests as auth_requests
-
-        bucket_name = os.getenv('GCS_BUCKET_NAME', 'bananafate-images')
-        project_id = os.getenv('GCS_PROJECT_ID', 'banana-fate')
-
-        credentials, project = auth.default()
-        credentials.refresh(auth_requests.Request())
-        storage_client = storage.Client(project=project_id or project, credentials=credentials)
-
-        bucket = storage_client.bucket(bucket_name)
-        gcs_deleted = 0
-
-        for image in images:
-            try:
-                blob = bucket.blob(image['objectPath'])
-                blob.delete()
-                gcs_deleted += 1
-            except Exception as e:
-                if not IS_PRODUCTION:
-                    print(f"⚠️ Failed to delete GCS object {image['objectPath']}: {e}")
-
-        # Delete from MongoDB
-        result = collection.delete_many({
+        # Prepare target info for audit
+        target_info = {
             "batchId": batch_id,
             "bananaId": banana_id
-        })
+        }
 
-        if not IS_PRODUCTION:
-            print(f"✅ Deleted {result.deleted_count} images for banana {banana_id} ({gcs_deleted} from GCS)")
+        # Perform transactional deletion
+        result = delete_multiple_images_transaction(
+            collection,
+            filter_query,
+            user_id,
+            operation_type='banana',
+            target_info=target_info
+        )
 
         return {
-            "success": True,
-            "deletedCount": result.deleted_count,
-            "gcsDeletedCount": gcs_deleted,
-            "deletedImages": [serialize_document(img) for img in images]
+            "success": result["success"],
+            "deletedCount": result["deletedCount"],
+            "gcsDeletedCount": result["gcsDeletedCount"],
+            "expectedCount": result["expectedCount"],
+            "deletedImages": [serialize_document(img) for img in result["deletedImages"]]
         }
-    except HTTPException:
-        raise
+
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+    except DeletionError as e:
+        error_detail = {
+            "message": str(e),
+            "errors": e.gcs_errors if hasattr(e, 'gcs_errors') else []
+        }
+        if not IS_PRODUCTION:
+            print(f"❌ Deletion failed: {e}")
+        raise HTTPException(status_code=500, detail=error_detail)
+
     except Exception as e:
         if not IS_PRODUCTION:
-            print(f"Error deleting banana: {e}")
-        raise HTTPException(status_code=500, detail="Failed to delete banana")
+            print(f"❌ Unexpected error deleting banana: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to delete banana: {str(e)}")
 
 @app.delete("/batch/{batch_id}")
 async def delete_batch(batch_id: str, auth: dict = Depends(verify_auth_token)):
     """
-    Delete entire batch (all images in MongoDB + GCS).
+    Delete entire batch (all images in MongoDB + GCS) with batch deletion.
 
     Args:
         batch_id: Batch identifier
@@ -775,60 +765,182 @@ async def delete_batch(batch_id: str, auth: dict = Depends(verify_auth_token)):
         {
             "success": true,
             "deletedCount": 42,
-            "gcsDeletedCount": 42
+            "gcsDeletedCount": 42,
+            "expectedCount": 42,
+            "batchId": "batch_001"
+        }
+
+    Errors:
+        - 404: No images found for batch
+        - 500: Deletion failed (includes GCS or MongoDB errors)
+    """
+    from helper_deletion import delete_multiple_images_transaction, DeletionError
+
+    try:
+        collection = get_collection()
+
+        # Get user ID from auth token
+        user_id = auth.get('userId', 'unknown')
+
+        # Prepare filter query
+        filter_query = {"batchId": batch_id}
+
+        # Prepare target info for audit
+        target_info = {"batchId": batch_id}
+
+        # Perform transactional deletion
+        result = delete_multiple_images_transaction(
+            collection,
+            filter_query,
+            user_id,
+            operation_type='batch',
+            target_info=target_info
+        )
+
+        return {
+            "success": result["success"],
+            "deletedCount": result["deletedCount"],
+            "gcsDeletedCount": result["gcsDeletedCount"],
+            "expectedCount": result["expectedCount"],
+            "batchId": batch_id
+        }
+
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+    except DeletionError as e:
+        error_detail = {
+            "message": str(e),
+            "errors": e.gcs_errors if hasattr(e, 'gcs_errors') else []
+        }
+        if not IS_PRODUCTION:
+            print(f"❌ Deletion failed: {e}")
+        raise HTTPException(status_code=500, detail=error_detail)
+
+    except Exception as e:
+        if not IS_PRODUCTION:
+            print(f"❌ Unexpected error deleting batch: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to delete batch: {str(e)}")
+
+@app.get("/audit/deletions")
+async def get_deletion_audit(
+    limit: int = 50,
+    skip: int = 0,
+    operation_type: Optional[str] = None,
+    auth: dict = Depends(verify_auth_token)
+):
+    """
+    Get deletion audit trail.
+
+    Args:
+        limit: Maximum number of records to return (default: 50, max: 200)
+        skip: Number of records to skip (for pagination)
+        operation_type: Filter by operation type ('image', 'banana', 'batch')
+
+    Requires: Authentication token
+
+    Response:
+        {
+            "total": 150,
+            "limit": 50,
+            "skip": 0,
+            "audits": [
+                {
+                    "timestamp": "2025-01-06T10:30:00Z",
+                    "userId": "admin",
+                    "operationType": "image",
+                    "target": { "documentId": "...", "objectPath": "..." },
+                    "deletedCount": 1,
+                    "gcsDeletedCount": 1,
+                    "success": true,
+                    "errors": [],
+                    "partialSuccess": false
+                },
+                ...
+            ]
         }
     """
     try:
         collection = get_collection()
+        db = collection.database
+        audit_collection = db['deletion_audit']
 
-        # Get all images in batch
-        images = list(collection.find({"batchId": batch_id}))
+        # Validate and cap limit
+        limit = min(max(1, limit), 200)
 
-        if not images:
-            raise HTTPException(status_code=404, detail="No images found for this batch")
+        # Build filter query
+        filter_query = {}
+        if operation_type:
+            if operation_type not in ['image', 'banana', 'batch']:
+                raise HTTPException(status_code=400, detail="Invalid operation_type")
+            filter_query['operationType'] = operation_type
 
-        # Delete from GCS
-        from google.cloud import storage
-        from google import auth
-        from google.auth.transport import requests as auth_requests
+        # Get total count
+        total = audit_collection.count_documents(filter_query)
 
-        bucket_name = os.getenv('GCS_BUCKET_NAME', 'bananafate-images')
-        project_id = os.getenv('GCS_PROJECT_ID', 'banana-fate')
+        # Get audit records
+        audits = list(
+            audit_collection.find(filter_query)
+            .sort('timestamp', -1)  # Most recent first
+            .skip(skip)
+            .limit(limit)
+        )
 
-        credentials, project = auth.default()
-        credentials.refresh(auth_requests.Request())
-        storage_client = storage.Client(project=project_id or project, credentials=credentials)
-
-        bucket = storage_client.bucket(bucket_name)
-        gcs_deleted = 0
-
-        for image in images:
-            try:
-                blob = bucket.blob(image['objectPath'])
-                blob.delete()
-                gcs_deleted += 1
-            except Exception as e:
-                if not IS_PRODUCTION:
-                    print(f"⚠️ Failed to delete GCS object {image['objectPath']}: {e}")
-
-        # Delete from MongoDB
-        result = collection.delete_many({"batchId": batch_id})
-
-        if not IS_PRODUCTION:
-            print(f"✅ Deleted {result.deleted_count} images for batch {batch_id} ({gcs_deleted} from GCS)")
+        # Serialize
+        for audit in audits:
+            if '_id' in audit:
+                audit['_id'] = str(audit['_id'])
+            if 'timestamp' in audit:
+                audit['timestamp'] = audit['timestamp'].isoformat() + 'Z'
 
         return {
-            "success": True,
-            "deletedCount": result.deleted_count,
-            "gcsDeletedCount": gcs_deleted,
-            "batchId": batch_id
+            "total": total,
+            "limit": limit,
+            "skip": skip,
+            "audits": audits
         }
+
     except HTTPException:
         raise
     except Exception as e:
         if not IS_PRODUCTION:
-            print(f"Error deleting batch: {e}")
-        raise HTTPException(status_code=500, detail="Failed to delete batch")
+            print(f"❌ Error getting audit trail: {e}")
+        raise HTTPException(status_code=500, detail="Failed to get audit trail")
+
+@app.post("/maintenance/cleanup-soft-deletes")
+async def cleanup_soft_deletes(auth: dict = Depends(verify_auth_token)):
+    """
+    Clean up expired soft-deleted documents (hard delete after retention period).
+
+    This endpoint should be called periodically (e.g., daily cron job) to clean up
+    soft-deleted documents that have exceeded the retention period.
+
+    Requires: Authentication token
+
+    Response:
+        {
+            "success": true,
+            "deletedCount": 15,
+            "message": "Cleaned up 15 expired soft deletes"
+        }
+    """
+    from helper_deletion import cleanup_expired_soft_deletes
+
+    try:
+        collection = get_collection()
+
+        deleted_count = cleanup_expired_soft_deletes(collection)
+
+        return {
+            "success": True,
+            "deletedCount": deleted_count,
+            "message": f"Cleaned up {deleted_count} expired soft deletes"
+        }
+
+    except Exception as e:
+        if not IS_PRODUCTION:
+            print(f"❌ Error cleaning up soft deletes: {e}")
+        raise HTTPException(status_code=500, detail="Failed to cleanup soft deletes")
 
 @app.get("/analytics/counts")
 async def get_analytics_counts(auth: dict = Depends(verify_auth_token)):
