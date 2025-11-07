@@ -11,6 +11,7 @@ import {
   AnalyticsCounts,
   TimelineDataPoint,
   StageDistribution,
+  StorageAnalytics,
   UpdateMetadataRequest,
 } from '../types';
 
@@ -263,6 +264,13 @@ export async function getStageDistribution(): Promise<StageDistribution[]> {
   console.log('[API] Fetching stage distribution');
   const result = await makeAuthenticatedRequest<StageDistribution[]>('/analytics/stage-distribution');
   console.log('[API] Stage distribution retrieved');
+  return result;
+}
+
+export async function getStorageAnalytics(): Promise<StorageAnalytics> {
+  console.log('[API] Fetching storage analytics');
+  const result = await makeAuthenticatedRequest<StorageAnalytics>('/analytics/storage');
+  console.log('[API] Storage analytics retrieved:', result.totalStorageFormatted);
   return result;
 }
 

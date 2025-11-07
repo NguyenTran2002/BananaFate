@@ -20,6 +20,7 @@ export interface ImageDocument {
   gcsUrl: string;
   uploadedAt: string;
   updatedAt?: string;
+  fileSizeBytes?: number;  // File size in bytes (optional for backward compatibility)
 }
 
 // Image quality metadata extracted from GCS blob
@@ -77,6 +78,32 @@ export interface StageDistribution {
   stage: string;
   count: number;
   percentage: number;
+}
+
+// Storage analytics data
+export interface StorageImageInfo {
+  documentId: string;
+  batchId: string;
+  bananaId: string;
+  objectPath: string;
+  stage: string;
+  fileSizeBytes: number;
+  fileSizeFormatted: string;
+}
+
+export interface StorageAnalytics {
+  totalStorageBytes: number;
+  totalStorageFormatted: string;
+  totalPhotos: number;
+  averagePerPhotoBytes: number;
+  averagePerPhotoFormatted: string;
+  averagePerBananaBytes: number;
+  averagePerBananaFormatted: string;
+  totalBananas: number;
+  estimatedMonthlyCostUSD: number;
+  largestImages: StorageImageInfo[];
+  smallestImages: StorageImageInfo[];
+  imagesWithoutSize: number;
 }
 
 // Update metadata request

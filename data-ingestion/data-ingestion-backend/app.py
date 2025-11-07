@@ -70,6 +70,7 @@ class MetadataRequest(BaseModel):
     stage: str = Field(..., description="Ripeness stage (Under Ripe, Barely Ripe, Ripe, Very Ripe, Over Ripe, Death)")
     notes: Optional[str] = Field(default="", description="Optional observation notes")
     objectPath: str = Field(..., description="GCS object path returned from signed URL generation")
+    fileSizeBytes: Optional[int] = Field(default=None, description="File size in bytes (optional for backward compatibility)")
 
 class LoginRequest(BaseModel):
     """Request model for authentication"""
@@ -247,6 +248,10 @@ async def save_metadata(request: MetadataRequest, auth: dict = Depends(verify_au
             "gcsUrl": f"gs://bananafate-images/{request.objectPath}",
             "uploadedAt": datetime.utcnow().isoformat() + "Z"
         }
+
+        # Add file size if provided (optional for backward compatibility)
+        if request.fileSizeBytes is not None:
+            document["fileSizeBytes"] = request.fileSizeBytes
 
         # Insert into MongoDB
         result = collection.insert_one(document)
@@ -1156,6 +1161,162 @@ async def get_image_quality(object_path: str, user_auth: dict = Depends(verify_a
         logger.error(f"[IMAGE-QUALITY] Unexpected error: {error_msg}")
         logger.error(f"[IMAGE-QUALITY] Exception type: {type(e).__name__}")
         logger.error(f"[IMAGE-QUALITY] Stack trace:\n{traceback.format_exc()}")
+        raise HTTPException(status_code=500, detail=error_msg)
+
+@app.get("/analytics/storage")
+async def get_storage_analytics(auth: dict = Depends(verify_auth_token)):
+    """
+    Get storage analytics for all images.
+
+    Calculates total storage, averages, cost projections, and identifies outliers.
+
+    Requires: Authentication token
+
+    Response:
+        {
+            "totalStorageBytes": 1234567890,
+            "totalStorageFormatted": "1.15 GB",
+            "totalPhotos": 500,
+            "averagePerPhotoBytes": 2469135,
+            "averagePerPhotoFormatted": "2.35 MB",
+            "averagePerBananaBytes": 12345678,
+            "averagePerBananaFormatted": "11.77 MB",
+            "totalBananas": 100,
+            "estimatedMonthlyCostUSD": 0.023,
+            "largestImages": [
+                {
+                    "documentId": "...",
+                    "batchId": "batch_001",
+                    "bananaId": "banana_042",
+                    "objectPath": "batch_001/banana_042_1730819400.jpg",
+                    "stage": "Ripe",
+                    "fileSizeBytes": 5000000,
+                    "fileSizeFormatted": "4.77 MB"
+                },
+                ...
+            ],
+            "smallestImages": [...]
+        }
+    """
+    try:
+        collection = get_collection()
+
+        # Get all images with file size data
+        images_with_size = list(collection.find(
+            {"fileSizeBytes": {"$exists": True, "$ne": None}},
+            {"_id": 1, "batchId": 1, "bananaId": 1, "objectPath": 1, "stage": 1, "fileSizeBytes": 1}
+        ))
+
+        if len(images_with_size) == 0:
+            return {
+                "totalStorageBytes": 0,
+                "totalStorageFormatted": "0 B",
+                "totalPhotos": 0,
+                "averagePerPhotoBytes": 0,
+                "averagePerPhotoFormatted": "0 B",
+                "averagePerBananaBytes": 0,
+                "averagePerBananaFormatted": "0 B",
+                "totalBananas": 0,
+                "estimatedMonthlyCostUSD": 0.0,
+                "largestImages": [],
+                "smallestImages": [],
+                "imagesWithoutSize": 0
+            }
+
+        # Calculate total storage
+        total_storage_bytes = sum(img.get("fileSizeBytes", 0) for img in images_with_size)
+
+        # Total photos with size data
+        total_photos = len(images_with_size)
+
+        # Average per photo
+        avg_per_photo_bytes = total_storage_bytes // total_photos if total_photos > 0 else 0
+
+        # Calculate average per banana (group by bananaId)
+        banana_storage = {}
+        for img in images_with_size:
+            banana_id = img.get("bananaId")
+            if banana_id:
+                if banana_id not in banana_storage:
+                    banana_storage[banana_id] = 0
+                banana_storage[banana_id] += img.get("fileSizeBytes", 0)
+
+        total_bananas = len(banana_storage)
+        avg_per_banana_bytes = total_storage_bytes // total_bananas if total_bananas > 0 else 0
+
+        # Cost projection (GCS Standard Storage: $0.020/GB/month in us-central1)
+        # Convert bytes to GB, then multiply by rate
+        total_storage_gb = total_storage_bytes / (1024 ** 3)
+        estimated_monthly_cost = total_storage_gb * 0.020
+
+        # Format sizes
+        def format_bytes(bytes_val):
+            if bytes_val >= 1024 ** 3:  # GB
+                return f"{bytes_val / (1024 ** 3):.2f} GB"
+            elif bytes_val >= 1024 ** 2:  # MB
+                return f"{bytes_val / (1024 ** 2):.2f} MB"
+            elif bytes_val >= 1024:  # KB
+                return f"{bytes_val / 1024:.2f} KB"
+            else:
+                return f"{bytes_val} B"
+
+        # Find largest and smallest images (top 5 each)
+        sorted_by_size = sorted(images_with_size, key=lambda x: x.get("fileSizeBytes", 0), reverse=True)
+
+        largest_images = [
+            {
+                "documentId": str(img["_id"]),
+                "batchId": img.get("batchId", ""),
+                "bananaId": img.get("bananaId", ""),
+                "objectPath": img.get("objectPath", ""),
+                "stage": img.get("stage", ""),
+                "fileSizeBytes": img.get("fileSizeBytes", 0),
+                "fileSizeFormatted": format_bytes(img.get("fileSizeBytes", 0))
+            }
+            for img in sorted_by_size[:5]
+        ]
+
+        smallest_images = [
+            {
+                "documentId": str(img["_id"]),
+                "batchId": img.get("batchId", ""),
+                "bananaId": img.get("bananaId", ""),
+                "objectPath": img.get("objectPath", ""),
+                "stage": img.get("stage", ""),
+                "fileSizeBytes": img.get("fileSizeBytes", 0),
+                "fileSizeFormatted": format_bytes(img.get("fileSizeBytes", 0))
+            }
+            for img in sorted_by_size[-5:][::-1]  # Reverse to show smallest first
+        ]
+
+        # Count images without file size for info
+        images_without_size = collection.count_documents({
+            "$or": [
+                {"fileSizeBytes": {"$exists": False}},
+                {"fileSizeBytes": None}
+            ]
+        })
+
+        return {
+            "totalStorageBytes": total_storage_bytes,
+            "totalStorageFormatted": format_bytes(total_storage_bytes),
+            "totalPhotos": total_photos,
+            "averagePerPhotoBytes": avg_per_photo_bytes,
+            "averagePerPhotoFormatted": format_bytes(avg_per_photo_bytes),
+            "averagePerBananaBytes": avg_per_banana_bytes,
+            "averagePerBananaFormatted": format_bytes(avg_per_banana_bytes),
+            "totalBananas": total_bananas,
+            "estimatedMonthlyCostUSD": round(estimated_monthly_cost, 4),
+            "largestImages": largest_images,
+            "smallestImages": smallest_images,
+            "imagesWithoutSize": images_without_size
+        }
+
+    except Exception as e:
+        error_msg = "Failed to retrieve storage analytics"
+        if not IS_PRODUCTION:
+            error_msg += f": {str(e)}"
+            print(f"Error getting storage analytics: {e}")
         raise HTTPException(status_code=500, detail=error_msg)
 
 # Run server (for local development)

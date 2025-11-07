@@ -120,6 +120,7 @@ const AuthenticatedApp: React.FC = () => {
       await saveMetadata({
         ...data,
         objectPath,
+        fileSizeBytes: imageBlob.size,
       });
       console.log('[UPLOAD] ✓ Metadata saved successfully');
 

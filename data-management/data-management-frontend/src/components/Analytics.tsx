@@ -21,6 +21,7 @@ import {
 } from 'recharts';
 import { getAnalyticsCounts, getAnalyticsTimeline, getStageDistribution } from '../utils/apiClient';
 import { AnalyticsCounts, TimelineDataPoint, StageDistribution } from '../types';
+import { StorageAnalytics } from './StorageAnalytics';
 
 export function Analytics() {
   const [counts, setCounts] = useState<AnalyticsCounts | null>(null);
@@ -267,6 +268,11 @@ export function Analytics() {
             </tbody>
           </table>
         </div>
+      </div>
+
+      {/* Storage Analytics Section */}
+      <div className="pt-8 mt-8 border-t border-brand-yellow/20">
+        <StorageAnalytics />
       </div>
     </div>
   );

@@ -157,6 +157,7 @@ export async function saveMetadata(metadata: {
   stage: string;
   notes: string;
   objectPath: string;
+  fileSizeBytes?: number;
 }): Promise<{ success: boolean; documentId: string }> {
   console.log('[API] Saving metadata to MongoDB');
   console.log('[API] Metadata:', metadata);
