@@ -86,10 +86,17 @@ fi
 log_success "All critical files verified (${#CRITICAL_FILES[@]} files)"
 echo ""
 
-# Build Docker image with all build args
+# Pull existing image for layer caching
+log_info "Pulling existing image for cache..."
+docker pull "$IMAGE_NAME" 2>/dev/null || log_info "No existing image found, building from scratch"
+echo ""
+
+# Build Docker image with all build args (using Alpine multi-stage build)
 log_info "Building Docker image..."
 docker build \
   --platform linux/amd64 \
+  --cache-from="$IMAGE_NAME" \
+  -f "$BACKEND_DIR/Dockerfile.alpine" \
   --build-arg username="$MONGODB_USERNAME" \
   --build-arg password="$MONGODB_PASSWORD" \
   --build-arg server_address="$MONGODB_SERVER_ADDRESS" \

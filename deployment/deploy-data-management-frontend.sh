@@ -84,10 +84,16 @@ fi
 log_success "All critical files verified (${#CRITICAL_FILES[@]} files)"
 echo ""
 
+# Pull existing image for layer caching
+log_info "Pulling existing image for cache..."
+docker pull "$IMAGE_NAME" 2>/dev/null || log_info "No existing image found, building from scratch"
+echo ""
+
 # Build Docker image with backend URL
 log_info "Building Docker image..."
 docker build \
   --platform linux/amd64 \
+  --cache-from="$IMAGE_NAME" \
   --build-arg VITE_BACKEND_URL="$BACKEND_URL" \
   -f "$FRONTEND_DIR/Dockerfile.prod" \
   -t "$IMAGE_NAME" \

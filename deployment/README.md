@@ -78,7 +78,7 @@ All configuration is in `.env` file in this directory.
 
 | Variable | Description | Example |
 |----------|-------------|---------|
-| `ADMIN_PASSWORD` | Password for management portal | `REDACTED` |
+| `ADMIN_PASSWORD` | Password for management portal | `your-secure-password` |
 | `GCP_PROJECT_ID` | Your GCP project ID | `banana-fate` |
 | `GCP_REGION` | Deployment region | `us-central1` |
 | `MONGODB_USERNAME` | MongoDB Atlas username | `<your-username>` |
@@ -249,7 +249,7 @@ Both should return `HTTP/2 200`.
 # Login to management portal
 TOKEN=$(curl -X POST https://data-ingestion-backend-281433271767.us-central1.run.app/auth/login \
   -H "Content-Type: application/json" \
-  -d '{"password":"REDACTED"}' | jq -r '.token')
+  -d '{"password":"your-secure-password"}' | jq -r '.token')
 
 # Use token to access protected endpoint
 curl -H "Authorization: Bearer $TOKEN" \

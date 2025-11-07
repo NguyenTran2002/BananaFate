@@ -578,7 +578,7 @@ curl -s "$BACKEND/health" | jq '.'
 # Login
 TOKEN=$(curl -s -X POST "$BACKEND/auth/login" \
   -H "Content-Type: application/json" \
-  -d '{"password":"REDACTED"}' | jq -r '.token')
+  -d '{"password":"your-secure-password"}' | jq -r '.token')
 
 # Protected endpoint
 curl -s -H "Authorization: Bearer $TOKEN" "$BACKEND/batches" | jq '.'

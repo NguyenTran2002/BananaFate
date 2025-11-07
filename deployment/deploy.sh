@@ -137,17 +137,196 @@ select_services() {
   fi
 }
 
-# Deploy all services
-deploy_all() {
-  log_info "Deploying all services..."
+# Monitor parallel deployment with live status updates
+monitor_parallel_deployment() {
+  local backend_pid=$1
+  local ingestion_pid=$2
+  local management_pid=$3
+  local backend_log=$4
+  local ingestion_log=$5
+  local management_log=$6
+
+  # Track start time
+  local start_time=$(date +%s)
+
+  # Initialize status
+  local backend_status="Starting ⏳"
+  local ingestion_status="Starting ⏳"
+  local management_status="Starting ⏳"
+
+  local backend_done=false
+  local ingestion_done=false
+  local management_done=false
+
+  local failed=false
+
+  # Function to get elapsed time
+  get_elapsed() {
+    local now=$(date +%s)
+    local elapsed=$((now - start_time))
+    local mins=$((elapsed / 60))
+    local secs=$((elapsed % 60))
+    if [ $mins -gt 0 ]; then
+      echo "${mins}m ${secs}s"
+    else
+      echo "${secs}s"
+    fi
+  }
+
+  # Function to detect service status from log
+  get_service_status() {
+    local log_file=$1
+
+    if grep -q "Health check passed" "$log_file" 2>/dev/null; then
+      echo "Complete ✅"
+    elif grep -q "deployed successfully" "$log_file" 2>/dev/null; then
+      echo "Complete ✅"
+    elif grep -q "Deploying to Cloud Run" "$log_file" 2>/dev/null; then
+      echo "Deploying 🚀"
+    elif grep -q "Pushing image to Artifact Registry" "$log_file" 2>/dev/null; then
+      echo "Pushing 📤"
+    elif grep -q "Building Docker image" "$log_file" 2>/dev/null; then
+      echo "Building 🔨"
+    elif grep -q "Verifying critical" "$log_file" 2>/dev/null; then
+      echo "Preparing 📋"
+    else
+      echo "Starting ⏳"
+    fi
+  }
+
+  # Clear screen and show header
+  echo ""
+  echo "╔════════════════════════════════════════════════════════╗"
+  echo "║           Deployment Progress (Parallel)               ║"
+  echo "╚════════════════════════════════════════════════════════╝"
   echo ""
 
-  # Deploy in order: backend first, then frontends
-  "$SCRIPT_DIR/deploy-data-ingestion-backend.sh"
+  # Monitor loop
+  while true; do
+    # Check if processes are still running
+    if ! kill -0 $backend_pid 2>/dev/null && [ "$backend_done" = "false" ]; then
+      wait $backend_pid
+      if [ $? -eq 0 ]; then
+        backend_status="Complete ✅"
+      else
+        backend_status="Failed ❌"
+        failed=true
+      fi
+      backend_done=true
+    fi
+
+    if ! kill -0 $ingestion_pid 2>/dev/null && [ "$ingestion_done" = "false" ]; then
+      wait $ingestion_pid
+      if [ $? -eq 0 ]; then
+        ingestion_status="Complete ✅"
+      else
+        ingestion_status="Failed ❌"
+        failed=true
+      fi
+      ingestion_done=true
+    fi
+
+    if ! kill -0 $management_pid 2>/dev/null && [ "$management_done" = "false" ]; then
+      wait $management_pid
+      if [ $? -eq 0 ]; then
+        management_status="Complete ✅"
+      else
+        management_status="Failed ❌"
+        failed=true
+      fi
+      management_done=true
+    fi
+
+    # Update status from logs if still running
+    if [ "$backend_done" = "false" ]; then
+      backend_status=$(get_service_status "$backend_log")
+    fi
+
+    if [ "$ingestion_done" = "false" ]; then
+      ingestion_status=$(get_service_status "$ingestion_log")
+    fi
+
+    if [ "$management_done" = "false" ]; then
+      management_status=$(get_service_status "$management_log")
+    fi
+
+    # Move cursor up 5 lines and redraw status
+    printf "\033[5A"
+    printf "\033[K  Backend:              %-30s\n" "$backend_status"
+    printf "\033[K  Ingestion Frontend:   %-30s\n" "$ingestion_status"
+    printf "\033[K  Management Frontend:  %-30s\n" "$management_status"
+    printf "\033[K\n"
+    printf "\033[K  Elapsed: %s\n" "$(get_elapsed)"
+
+    # Check if all done
+    if [ "$backend_done" = "true" ] && [ "$ingestion_done" = "true" ] && [ "$management_done" = "true" ]; then
+      break
+    fi
+
+    # Wait before next update
+    sleep 2
+  done
+
   echo ""
-  "$SCRIPT_DIR/deploy-data-ingestion-frontend.sh"
+
+  # Return failure status
+  if [ "$failed" = "true" ]; then
+    return 1
+  else
+    return 0
+  fi
+}
+
+# Deploy all services
+deploy_all() {
+  log_info "Deploying all services in parallel..."
   echo ""
-  "$SCRIPT_DIR/deploy-data-management-frontend.sh"
+
+  # Create log files for parallel execution
+  local backend_log=$(mktemp)
+  local ingestion_log=$(mktemp)
+  local management_log=$(mktemp)
+
+  # Deploy all services in parallel
+  log_info "Starting parallel deployment of 3 services..."
+
+  "$SCRIPT_DIR/deploy-data-ingestion-backend.sh" > "$backend_log" 2>&1 &
+  local backend_pid=$!
+
+  "$SCRIPT_DIR/deploy-data-ingestion-frontend.sh" > "$ingestion_log" 2>&1 &
+  local ingestion_pid=$!
+
+  "$SCRIPT_DIR/deploy-data-management-frontend.sh" > "$management_log" 2>&1 &
+  local management_pid=$!
+
+  # Monitor deployments with live status updates
+  if ! monitor_parallel_deployment $backend_pid $ingestion_pid $management_pid "$backend_log" "$ingestion_log" "$management_log"; then
+    local failed=true
+    echo "═══════════════════════════════════════════════════════"
+    log_error "Some deployments failed. Showing logs:"
+    echo ""
+
+    echo "Backend logs:"
+    cat "$backend_log"
+    echo ""
+
+    echo "Ingestion frontend logs:"
+    cat "$ingestion_log"
+    echo ""
+
+    echo "Management frontend logs:"
+    cat "$management_log"
+    echo ""
+
+    rm -f "$backend_log" "$ingestion_log" "$management_log"
+    exit 1
+  fi
+
+  # Clean up log files
+  rm -f "$backend_log" "$ingestion_log" "$management_log"
+
+  echo ""
+  log_success "All parallel deployments completed successfully!"
 }
 
 # Deploy selected services

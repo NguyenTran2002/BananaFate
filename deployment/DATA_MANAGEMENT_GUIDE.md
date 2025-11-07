@@ -128,7 +128,7 @@ The Data Management Module provides a complete admin portal for viewing, editing
 
 2. **Admin password configured** in `.env`:
    ```
-   ADMIN_PASSWORD=REDACTED
+   ADMIN_PASSWORD=your-secure-password
    ```
 
 ### Deployment Methods
@@ -188,7 +188,7 @@ Original: 206 lines → Extended: 1006 lines (+800 lines)
 #### Authentication (1)
 ```
 POST /auth/login
-  Request: { "password": "REDACTED" }
+  Request: { "password": "your-secure-password" }
   Response: { "token": "eyJ...", "expiresIn": 28800 }
 ```
 
@@ -331,7 +331,7 @@ PORTAL_URL=$(gcloud run services describe data-management-frontend \
   --format='value(status.url)')
 
 echo "Portal URL: $PORTAL_URL"
-echo "Password: REDACTED"
+echo "Password: your-secure-password"
 ```
 
 ### 3. Test Authentication
@@ -345,7 +345,7 @@ BACKEND_URL=$(gcloud run services describe data-ingestion-backend \
 # Login
 curl -X POST "$BACKEND_URL/auth/login" \
   -H "Content-Type: application/json" \
-  -d '{"password":"REDACTED"}' | jq '.'
+  -d '{"password":"your-secure-password"}' | jq '.'
 ```
 
 **Expected response:**
@@ -363,7 +363,7 @@ curl -X POST "$BACKEND_URL/auth/login" \
 # Get token
 TOKEN=$(curl -X POST "$BACKEND_URL/auth/login" \
   -H "Content-Type: application/json" \
-  -d '{"password":"REDACTED"}' | jq -r '.token')
+  -d '{"password":"your-secure-password"}' | jq -r '.token')
 
 # List batches
 curl -H "Authorization: Bearer $TOKEN" \
@@ -421,7 +421,7 @@ JWT_SECRET=$(openssl rand -base64 32)
 ### Logging In
 
 1. Navigate to portal URL
-2. Enter password (default: `REDACTED`)
+2. Enter password (set in deployment/.env)
 3. Click "Login"
 4. Token is stored in localStorage (8-hour expiration)
 
