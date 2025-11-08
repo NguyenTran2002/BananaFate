@@ -6,6 +6,8 @@
 import React, { useState } from 'react';
 import { ImageDocument, UpdateMetadataRequest, RipenessStage } from '../types';
 import { updateMetadata } from '../utils/apiClient';
+import { QuestionMarkIcon } from './icons/QuestionMarkIcon';
+import RipenessGuideModal from './RipenessGuideModal';
 
 interface EditMetadataModalProps {
   image: ImageDocument;
@@ -19,6 +21,7 @@ export function EditMetadataModal({ image, onClose, onSuccess }: EditMetadataMod
   const [step, setStep] = useState<EditStep>('form');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isGuideOpen, setIsGuideOpen] = useState(false);
 
   // Form state (initialized with current values)
   const [formData, setFormData] = useState({
@@ -148,7 +151,17 @@ export function EditMetadataModal({ image, onClose, onSuccess }: EditMetadataMod
 
             {/* Stage */}
             <div>
-              <label className="block text-sm font-medium text-dark-text mb-2">Ripeness Stage</label>
+              <div className="flex items-center justify-between mb-2">
+                <label className="block text-sm font-medium text-dark-text">Ripeness Stage</label>
+                <button
+                  type="button"
+                  onClick={() => setIsGuideOpen(true)}
+                  className="text-dark-subtext hover:text-brand-yellow transition-colors p-1 -mr-1"
+                  aria-label="Open ripeness guide"
+                >
+                  <QuestionMarkIcon className="w-5 h-5" />
+                </button>
+              </div>
               <select
                 value={formData.stage}
                 onChange={(e) => handleChange('stage', e.target.value)}
@@ -205,6 +218,9 @@ export function EditMetadataModal({ image, onClose, onSuccess }: EditMetadataMod
               </button>
             </div>
           </form>
+
+          {/* Ripeness Guide Modal */}
+          <RipenessGuideModal isOpen={isGuideOpen} onClose={() => setIsGuideOpen(false)} />
         </div>
       </div>
     );
