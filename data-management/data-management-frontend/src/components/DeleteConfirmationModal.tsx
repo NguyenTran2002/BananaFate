@@ -166,7 +166,7 @@ export function DeleteConfirmationModal({ type, target, onClose, onSuccess }: De
   if (success) {
     return (
       <div
-        className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4"
+        className="fixed inset-0 z-[90] bg-black/80 flex items-center justify-center p-4"
         onClick={(e) => {
           if (e.target === e.currentTarget) {
             onSuccess();
@@ -189,7 +189,7 @@ export function DeleteConfirmationModal({ type, target, onClose, onSuccess }: De
   // Confirmation view
   return (
     <div
-      className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4"
+      className="fixed inset-0 z-[90] bg-black/80 flex items-center justify-center p-4"
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}

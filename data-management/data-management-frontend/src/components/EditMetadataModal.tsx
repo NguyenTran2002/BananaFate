@@ -98,7 +98,7 @@ export function EditMetadataModal({ image, onClose, onSuccess }: EditMetadataMod
   if (step === 'form') {
     return (
       <div
-        className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4"
+        className="fixed inset-0 z-[90] bg-black/80 flex items-center justify-center p-4"
         onClick={(e) => {
           if (e.target === e.currentTarget) onClose();
         }}
@@ -237,7 +237,7 @@ export function EditMetadataModal({ image, onClose, onSuccess }: EditMetadataMod
 
     return (
       <div
-        className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4"
+        className="fixed inset-0 z-[90] bg-black/80 flex items-center justify-center p-4"
         onClick={(e) => {
           if (e.target === e.currentTarget) handleClose();
         }}

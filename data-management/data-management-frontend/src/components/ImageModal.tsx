@@ -76,12 +76,12 @@ export function ImageModal({ image, onClose, onEdit, onDelete, onNext, onPreviou
 
   return (
     <div
-      className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4"
+      className="fixed inset-0 z-[80] bg-black/90 flex items-center justify-center p-2 !m-0"
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="max-w-7xl w-full max-h-full flex flex-col md:flex-row gap-4">
+      <div className="max-w-7xl w-full max-h-[96vh] flex flex-col md:flex-row gap-4">
         {/* Image Display */}
         <div className="flex-1 flex items-center justify-center min-w-0">
           {loading && (
@@ -108,7 +108,7 @@ export function ImageModal({ image, onClose, onEdit, onDelete, onNext, onPreviou
               <img
                 src={imageUrl}
                 alt={`${image.bananaId} - ${image.stage}`}
-                className="max-w-full max-h-[80vh] object-contain rounded-lg shadow-2xl"
+                className="max-w-full max-h-[85vh] object-contain rounded-lg shadow-2xl"
               />
 
               {/* Navigation Arrows */}
@@ -138,7 +138,7 @@ export function ImageModal({ image, onClose, onEdit, onDelete, onNext, onPreviou
         </div>
 
         {/* Metadata Sidebar */}
-        <div className="w-full md:w-80 bg-ocean-surface rounded-xl p-6 overflow-y-auto custom-scrollbar">
+        <div className="w-full md:w-80 md:self-center bg-ocean-surface rounded-xl p-4 md:max-h-[96vh] overflow-y-auto custom-scrollbar">
           {/* Close Button */}
           <button
             onClick={onClose}
@@ -149,138 +149,139 @@ export function ImageModal({ image, onClose, onEdit, onDelete, onNext, onPreviou
           </button>
 
           {/* Metadata */}
-          <div className="space-y-4">
-            <div>
-              <h3 className="text-2xl font-bold text-brand-yellow mb-2">Image Details</h3>
-            </div>
-
-            <div className="space-y-3">
-              <div>
-                <label className="text-xs text-dark-subtext uppercase tracking-wide">Batch ID</label>
-                <p className="text-dark-text font-medium">{image.batchId}</p>
-              </div>
-
-              <div>
-                <label className="text-xs text-dark-subtext uppercase tracking-wide">Banana ID</label>
-                <p className="text-dark-text font-medium">{image.bananaId}</p>
-              </div>
-
-              <div>
-                <label className="text-xs text-dark-subtext uppercase tracking-wide">Ripeness Stage</label>
-                <p className="text-brand-green font-semibold text-lg">{image.stage}</p>
-              </div>
-
-              <div>
-                <label className="text-xs text-dark-subtext uppercase tracking-wide">Capture Time</label>
-                <p className="text-dark-text">{formatDate(image.captureTime)}</p>
-              </div>
-
-              {image.notes && (
-                <div>
-                  <label className="text-xs text-dark-subtext uppercase tracking-wide">Notes</label>
-                  <p className="text-dark-text">{image.notes}</p>
-                </div>
-              )}
-
-              <div>
-                <label className="text-xs text-dark-subtext uppercase tracking-wide">Uploaded</label>
-                <p className="text-dark-text text-sm">{formatDate(image.uploadedAt)}</p>
-              </div>
-
-              {image.updatedAt && (
-                <div>
-                  <label className="text-xs text-dark-subtext uppercase tracking-wide">Last Updated</label>
-                  <p className="text-dark-text text-sm">{formatDate(image.updatedAt)}</p>
-                </div>
-              )}
-            </div>
-
-            {/* Image Quality Section */}
-            <div className="pt-4 space-y-3 border-t border-brand-yellow/20">
-              <h4 className="text-lg font-bold text-brand-yellow">Image Quality</h4>
-
-              {qualityLoading && (
-                <div className="text-center py-4">
-                  <p className="text-dark-subtext text-sm">Loading quality data...</p>
-                </div>
-              )}
-
-              {qualityError && (
-                <div className="text-center py-2">
-                  <p className="text-red-400 text-sm">{qualityError}</p>
-                </div>
-              )}
-
-              {qualityData && !qualityLoading && (
-                <div className="space-y-3">
+          <div className="space-y-3">
+            {/* Two-column grid for Details and Quality */}
+            <div className="grid grid-cols-2 gap-3">
+              {/* Image Details Column */}
+              <div className="space-y-2">
+                <h3 className="text-lg font-bold text-brand-yellow mb-1">Details</h3>
+                <div className="space-y-2 text-sm">
                   <div>
-                    <label className="text-xs text-dark-subtext uppercase tracking-wide">Resolution</label>
-                    <p className="text-dark-text font-medium">{qualityData.resolution}</p>
+                    <label className="text-xs text-dark-subtext uppercase tracking-wide block">Batch ID</label>
+                    <p className="text-dark-text font-medium">{image.batchId}</p>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="text-xs text-dark-subtext uppercase tracking-wide">Format</label>
-                      <p className="text-dark-text font-medium">{qualityData.format}</p>
-                    </div>
-
-                    <div>
-                      <label className="text-xs text-dark-subtext uppercase tracking-wide">File Size</label>
-                      <p className="text-dark-text font-medium">{qualityData.file_size_formatted}</p>
-                    </div>
+                  <div>
+                    <label className="text-xs text-dark-subtext uppercase tracking-wide block">Banana ID</label>
+                    <p className="text-dark-text font-medium">{image.bananaId}</p>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="text-xs text-dark-subtext uppercase tracking-wide">Aspect Ratio</label>
-                      <p className="text-dark-text font-medium">{qualityData.aspect_ratio_label}</p>
-                    </div>
-
-                    <div>
-                      <label className="text-xs text-dark-subtext uppercase tracking-wide">Orientation</label>
-                      <p className="text-dark-text font-medium capitalize">{qualityData.orientation}</p>
-                    </div>
+                  <div>
+                    <label className="text-xs text-dark-subtext uppercase tracking-wide block">Stage</label>
+                    <p className="text-brand-green font-semibold">{image.stage}</p>
                   </div>
 
-                  {qualityData.compression_quality && (
+                  <div>
+                    <label className="text-xs text-dark-subtext uppercase tracking-wide block">Captured</label>
+                    <p className="text-dark-text text-xs">{formatDate(image.captureTime)}</p>
+                  </div>
+
+                  {image.notes && (
                     <div>
-                      <label className="text-xs text-dark-subtext uppercase tracking-wide">Compression Quality</label>
-                      <p className="text-dark-text font-medium">{qualityData.compression_quality}%</p>
+                      <label className="text-xs text-dark-subtext uppercase tracking-wide block">Notes</label>
+                      <p className="text-dark-text text-xs">{image.notes}</p>
                     </div>
                   )}
 
                   <div>
-                    <label className="text-xs text-dark-subtext uppercase tracking-wide">Color Mode</label>
-                    <p className="text-dark-text font-medium">{qualityData.color_mode}</p>
+                    <label className="text-xs text-dark-subtext uppercase tracking-wide block">Uploaded</label>
+                    <p className="text-dark-text text-xs">{formatDate(image.uploadedAt)}</p>
                   </div>
+
+                  {image.updatedAt && (
+                    <div>
+                      <label className="text-xs text-dark-subtext uppercase tracking-wide block">Updated</label>
+                      <p className="text-dark-text text-xs">{formatDate(image.updatedAt)}</p>
+                    </div>
+                  )}
                 </div>
-              )}
+              </div>
+
+              {/* Image Quality Column */}
+              <div className="space-y-2">
+                <h3 className="text-lg font-bold text-brand-yellow mb-1">Quality</h3>
+
+                {qualityLoading && (
+                  <div className="text-center py-2">
+                    <p className="text-dark-subtext text-xs">Loading...</p>
+                  </div>
+                )}
+
+                {qualityError && (
+                  <div className="text-center py-1">
+                    <p className="text-red-400 text-xs">{qualityError}</p>
+                  </div>
+                )}
+
+                {qualityData && !qualityLoading && (
+                  <div className="space-y-2 text-sm">
+                    <div>
+                      <label className="text-xs text-dark-subtext uppercase tracking-wide block">Resolution</label>
+                      <p className="text-dark-text font-medium text-xs">{qualityData.resolution}</p>
+                    </div>
+
+                    <div>
+                      <label className="text-xs text-dark-subtext uppercase tracking-wide block">Format</label>
+                      <p className="text-dark-text font-medium text-xs">{qualityData.format}</p>
+                    </div>
+
+                    <div>
+                      <label className="text-xs text-dark-subtext uppercase tracking-wide block">File Size</label>
+                      <p className="text-dark-text font-medium text-xs">{qualityData.file_size_formatted}</p>
+                    </div>
+
+                    <div>
+                      <label className="text-xs text-dark-subtext uppercase tracking-wide block">Aspect Ratio</label>
+                      <p className="text-dark-text font-medium text-xs">{qualityData.aspect_ratio_label}</p>
+                    </div>
+
+                    <div>
+                      <label className="text-xs text-dark-subtext uppercase tracking-wide block">Orientation</label>
+                      <p className="text-dark-text font-medium text-xs capitalize">{qualityData.orientation}</p>
+                    </div>
+
+                    {qualityData.compression_quality && (
+                      <div>
+                        <label className="text-xs text-dark-subtext uppercase tracking-wide block">Quality</label>
+                        <p className="text-dark-text font-medium text-xs">{qualityData.compression_quality}%</p>
+                      </div>
+                    )}
+
+                    <div>
+                      <label className="text-xs text-dark-subtext uppercase tracking-wide block">Color Mode</label>
+                      <p className="text-dark-text font-medium text-xs">{qualityData.color_mode}</p>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Actions */}
-            <div className="pt-4 space-y-2 border-t border-brand-yellow/20">
-              {onEdit && (
-                <button
-                  onClick={() => onEdit(image)}
-                  className="w-full py-3 px-4 bg-brand-yellow text-ocean-deep font-semibold rounded-lg
-                           hover:bg-yellow-500 transition-all flex items-center justify-center space-x-2"
-                >
-                  <span>✏️</span>
-                  <span>Edit Metadata</span>
-                </button>
-              )}
+            <div className="pt-3 border-t border-brand-yellow/20">
+              <div className="flex gap-2">
+                {onEdit && (
+                  <button
+                    onClick={() => onEdit(image)}
+                    className="flex-1 py-2.5 px-3 bg-brand-yellow text-ocean-deep font-semibold rounded-lg
+                             hover:bg-yellow-500 transition-all flex items-center justify-center space-x-1.5 text-sm"
+                  >
+                    <span>✏️</span>
+                    <span>Edit</span>
+                  </button>
+                )}
 
-              {onDelete && (
-                <button
-                  onClick={() => onDelete(image)}
-                  className="w-full py-3 px-4 bg-red-500/20 text-red-400 font-semibold rounded-lg
-                           border border-red-500/30 hover:bg-red-500/30 transition-all
-                           flex items-center justify-center space-x-2"
-                >
-                  <span>🗑️</span>
-                  <span>Delete Image</span>
-                </button>
-              )}
+                {onDelete && (
+                  <button
+                    onClick={() => onDelete(image)}
+                    className="flex-1 py-2.5 px-3 bg-red-500/20 text-red-400 font-semibold rounded-lg
+                             border border-red-500/30 hover:bg-red-500/30 transition-all
+                             flex items-center justify-center space-x-1.5 text-sm"
+                  >
+                    <span>🗑️</span>
+                    <span>Delete</span>
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         </div>
