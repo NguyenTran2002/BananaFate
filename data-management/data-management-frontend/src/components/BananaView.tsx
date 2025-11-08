@@ -19,6 +19,11 @@ export function BananaView() {
   const [loadingImages, setLoadingImages] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Sorting & Pagination states
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(20);
+
   // Modal states
   const [selectedImage, setSelectedImage] = useState<ImageDocument | null>(null);
   const [selectedImageIndex, setSelectedImageIndex] = useState<number>(-1);
@@ -105,6 +110,42 @@ export function BananaView() {
     return days;
   };
 
+  // Sorting & Pagination Logic
+  const sortedBananas = React.useMemo(() => {
+    const sorted = [...bananas].sort((a, b) => {
+      if (sortOrder === 'asc') {
+        return a.bananaId.localeCompare(b.bananaId);
+      } else {
+        return b.bananaId.localeCompare(a.bananaId);
+      }
+    });
+    return sorted;
+  }, [bananas, sortOrder]);
+
+  const totalPages = Math.ceil(sortedBananas.length / itemsPerPage);
+
+  const paginatedBananas = React.useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    return sortedBananas.slice(startIndex, endIndex);
+  }, [sortedBananas, currentPage, itemsPerPage]);
+
+  const handleSortToggle = () => {
+    setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'));
+    setCurrentPage(1); // Reset to first page when sorting changes
+  };
+
+  const handleItemsPerPageChange = (newItemsPerPage: number) => {
+    setItemsPerPage(newItemsPerPage);
+    setCurrentPage(1); // Reset to first page when items per page changes
+  };
+
+  const handlePageChange = (newPage: number) => {
+    if (newPage >= 1 && newPage <= totalPages) {
+      setCurrentPage(newPage);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
@@ -149,9 +190,49 @@ export function BananaView() {
           </button>
         </div>
 
+        {/* Sorting & Pagination Controls */}
+        <div className="bg-ocean-surface rounded-xl p-4 border border-brand-yellow/20">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            {/* Sort Controls */}
+            <div className="flex items-center gap-3">
+              <span className="text-dark-subtext text-sm">Sort by Banana ID:</span>
+              <button
+                onClick={handleSortToggle}
+                className="px-4 py-2 bg-ocean-deep border border-brand-yellow/30 text-dark-text
+                         rounded-lg hover:border-brand-yellow/50 transition-all font-semibold"
+              >
+                {sortOrder === 'asc' ? '🔤 A → Z' : '🔤 Z → A'}
+              </button>
+            </div>
+
+            {/* Items Per Page Selector */}
+            <div className="flex items-center gap-3">
+              <span className="text-dark-subtext text-sm">Items per page:</span>
+              <select
+                value={itemsPerPage}
+                onChange={(e) => handleItemsPerPageChange(Number(e.target.value))}
+                className="px-3 py-2 bg-ocean-deep border border-brand-yellow/30 text-dark-text
+                         rounded-lg hover:border-brand-yellow/50 transition-all focus:outline-none
+                         focus:border-brand-yellow"
+              >
+                <option value={10}>10</option>
+                <option value={20}>20</option>
+                <option value={50}>50</option>
+                <option value={100}>100</option>
+              </select>
+            </div>
+
+            {/* Info Display */}
+            <div className="text-dark-subtext text-sm">
+              Showing {sortedBananas.length === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1}-
+              {Math.min(currentPage * itemsPerPage, sortedBananas.length)} of {sortedBananas.length} bananas
+            </div>
+          </div>
+        </div>
+
         {/* Banana Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {bananas.map((banana) => {
+          {paginatedBananas.map((banana) => {
             const daysSpan = getDaysSpan(banana.firstCaptureTime, banana.lastCaptureTime);
 
             return (
@@ -229,6 +310,72 @@ export function BananaView() {
             );
           })}
         </div>
+
+        {/* Pagination Navigation */}
+        {totalPages > 1 && (
+          <div className="flex items-center justify-center gap-3">
+            <button
+              onClick={() => handlePageChange(currentPage - 1)}
+              disabled={currentPage === 1}
+              className="px-4 py-2 bg-ocean-surface border border-brand-yellow/30 text-dark-text
+                       rounded-lg hover:border-brand-yellow/50 transition-all font-semibold
+                       disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:border-brand-yellow/30"
+            >
+              ← Previous
+            </button>
+
+            <div className="flex items-center gap-2">
+              {/* Page numbers */}
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
+                // Show first page, last page, current page, and pages around current
+                const showPage =
+                  page === 1 ||
+                  page === totalPages ||
+                  (page >= currentPage - 1 && page <= currentPage + 1);
+
+                const showEllipsis =
+                  (page === 2 && currentPage > 3) ||
+                  (page === totalPages - 1 && currentPage < totalPages - 2);
+
+                if (showEllipsis) {
+                  return (
+                    <span key={page} className="text-dark-subtext px-2">
+                      ...
+                    </span>
+                  );
+                }
+
+                if (!showPage) {
+                  return null;
+                }
+
+                return (
+                  <button
+                    key={page}
+                    onClick={() => handlePageChange(page)}
+                    className={`w-10 h-10 rounded-lg font-semibold transition-all ${
+                      page === currentPage
+                        ? 'bg-brand-yellow text-ocean-deep'
+                        : 'bg-ocean-surface border border-brand-yellow/30 text-dark-text hover:border-brand-yellow/50'
+                    }`}
+                  >
+                    {page}
+                  </button>
+                );
+              })}
+            </div>
+
+            <button
+              onClick={() => handlePageChange(currentPage + 1)}
+              disabled={currentPage === totalPages}
+              className="px-4 py-2 bg-ocean-surface border border-brand-yellow/30 text-dark-text
+                       rounded-lg hover:border-brand-yellow/50 transition-all font-semibold
+                       disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:border-brand-yellow/30"
+            >
+              Next →
+            </button>
+          </div>
+        )}
 
         {bananas.length === 0 && (
           <div className="text-center py-20">
