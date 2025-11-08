@@ -23,6 +23,7 @@ import { getAnalyticsCounts, getAnalyticsTimeline, getStageDistribution } from '
 import { AnalyticsCounts, TimelineDataPoint, StageDistribution } from '../types';
 import { StorageAnalytics } from './StorageAnalytics';
 import { DeletionHistory } from './DeletionHistory';
+import CollectionProgress from './CollectionProgress';
 
 export function Analytics() {
   const [counts, setCounts] = useState<AnalyticsCounts | null>(null);
@@ -140,6 +141,9 @@ export function Analytics() {
           <div className="text-dark-subtext font-medium">Collection Batches</div>
         </div>
       </div>
+
+      {/* Collection Progress */}
+      <CollectionProgress totalImages={counts.totalImages} />
 
       {/* Stage Distribution - Pie Chart */}
       <div className="bg-ocean-surface rounded-xl p-6 border border-brand-yellow/20">

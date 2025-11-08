@@ -6,6 +6,7 @@
 import React, { useEffect, useState } from 'react';
 import { getAnalyticsCounts } from '../utils/apiClient';
 import { AnalyticsCounts, NavigationRoute } from '../types';
+import CollectionProgress from './CollectionProgress';
 
 interface DashboardProps {
   onNavigate: (route: NavigationRoute) => void;
@@ -110,6 +111,9 @@ export function Dashboard({ onNavigate }: DashboardProps) {
           </div>
         ))}
       </div>
+
+      {/* Collection Progress */}
+      <CollectionProgress totalImages={counts.totalImages} />
 
       {/* Stage Distribution */}
       <div className="bg-ocean-surface rounded-xl p-6 border border-brand-yellow/20">
