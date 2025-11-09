@@ -273,10 +273,10 @@ async def save_metadata(request: MetadataRequest, auth: dict = Depends(verify_au
 @app.get("/lookup-banana/{banana_id}")
 async def lookup_banana(banana_id: str, auth: dict = Depends(verify_auth_token)):
     """
-    Look up batch ID for a given banana ID.
+    Look up batch ID and capture history for a given banana ID.
 
     This endpoint helps minimize data entry errors by auto-filling the batch ID
-    when a banana ID is recognized from previous captures.
+    and providing context about the banana's previous captures.
 
     Args:
         banana_id: Banana identifier to look up
@@ -286,7 +286,10 @@ async def lookup_banana(banana_id: str, auth: dict = Depends(verify_auth_token))
     Response (found):
         {
             "found": true,
-            "batchId": "batch_001"
+            "batchId": "batch_001",
+            "lastStage": "Ripe",
+            "lastCaptureDate": "2025-01-08T14:30:00Z",
+            "captureCount": 5
         }
 
     Response (not found):
@@ -308,12 +311,18 @@ async def lookup_banana(banana_id: str, auth: dict = Depends(verify_auth_token))
         result = results[0] if results else None
 
         if result:
+            # Count total captures for this banana
+            capture_count = collection.count_documents({"bananaId": banana_id})
+
             if not IS_PRODUCTION:
-                print(f"✅ Lookup found: {banana_id} → {result['batchId']}")
+                print(f"✅ Lookup found: {banana_id} → {result['batchId']} (stage: {result.get('stage', 'N/A')}, count: {capture_count})")
 
             return {
                 "found": True,
-                "batchId": result['batchId']
+                "batchId": result['batchId'],
+                "lastStage": result.get('stage', None),
+                "lastCaptureDate": result.get('captureTime', None),
+                "captureCount": capture_count
             }
         else:
             if not IS_PRODUCTION:
@@ -1429,6 +1438,116 @@ async def get_storage_analytics(auth: dict = Depends(verify_auth_token)):
         if not IS_PRODUCTION:
             error_msg += f": {str(e)}"
             print(f"Error getting storage analytics: {e}")
+        raise HTTPException(status_code=500, detail=error_msg)
+
+@app.get("/analytics/mobile-dashboard")
+async def get_mobile_dashboard(auth: dict = Depends(verify_auth_token)):
+    """
+    Get lightweight analytics for mobile dashboard.
+
+    Returns collection progress, stage distribution, and basic storage stats
+    optimized for the data ingestion frontend.
+
+    Requires: Authentication token
+
+    Response:
+        {
+            "totalImages": 250,
+            "progressToGoal": 50.0,
+            "goal": 500,
+            "stageDistribution": [
+                {"stage": "Under Ripe", "count": 45},
+                {"stage": "Barely Ripe", "count": 52},
+                ...
+            ],
+            "storage": {
+                "totalStorageBytes": 123456789,
+                "totalStorageFormatted": "117.74 MB",
+                "totalPhotos": 250,
+                "averagePerPhotoBytes": 493827,
+                "averagePerPhotoFormatted": "482.25 KB",
+                "estimatedMonthlyCostUSD": 0.0024
+            }
+        }
+    """
+    try:
+        collection = get_collection()
+
+        # Total images count
+        total_images = collection.count_documents({})
+
+        # Progress to 500 images goal
+        goal = 500
+        progress_percentage = (total_images / goal) * 100 if goal > 0 else 0
+
+        # Stage distribution
+        stage_pipeline = [
+            {"$group": {"_id": "$stage", "count": {"$sum": 1}}},
+            {"$sort": {"_id": 1}}
+        ]
+        stage_results = list(collection.aggregate(stage_pipeline))
+        stage_distribution = [
+            {"stage": result["_id"], "count": result["count"]}
+            for result in stage_results
+        ]
+
+        # Basic storage stats
+        images_with_size = list(collection.find(
+            {"fileSizeBytes": {"$exists": True, "$ne": None}},
+            {"fileSizeBytes": 1}
+        ))
+
+        if len(images_with_size) > 0:
+            total_storage_bytes = sum(img.get("fileSizeBytes", 0) for img in images_with_size)
+            total_photos = len(images_with_size)
+            avg_per_photo_bytes = total_storage_bytes // total_photos if total_photos > 0 else 0
+
+            # Cost projection (GCS Standard Storage: $0.020/GB/month)
+            total_storage_gb = total_storage_bytes / (1024 ** 3)
+            estimated_monthly_cost = total_storage_gb * 0.020
+
+            # Format function
+            def format_bytes(bytes_val):
+                if bytes_val >= 1024 ** 3:  # GB
+                    return f"{bytes_val / (1024 ** 3):.2f} GB"
+                elif bytes_val >= 1024 ** 2:  # MB
+                    return f"{bytes_val / (1024 ** 2):.2f} MB"
+                elif bytes_val >= 1024:  # KB
+                    return f"{bytes_val / 1024:.2f} KB"
+                else:
+                    return f"{bytes_val} B"
+
+            storage_stats = {
+                "totalStorageBytes": total_storage_bytes,
+                "totalStorageFormatted": format_bytes(total_storage_bytes),
+                "totalPhotos": total_photos,
+                "averagePerPhotoBytes": avg_per_photo_bytes,
+                "averagePerPhotoFormatted": format_bytes(avg_per_photo_bytes),
+                "estimatedMonthlyCostUSD": round(estimated_monthly_cost, 4)
+            }
+        else:
+            storage_stats = {
+                "totalStorageBytes": 0,
+                "totalStorageFormatted": "0 B",
+                "totalPhotos": 0,
+                "averagePerPhotoBytes": 0,
+                "averagePerPhotoFormatted": "0 B",
+                "estimatedMonthlyCostUSD": 0.0
+            }
+
+        return {
+            "totalImages": total_images,
+            "progressToGoal": round(progress_percentage, 1),
+            "goal": goal,
+            "stageDistribution": stage_distribution,
+            "storage": storage_stats
+        }
+
+    except Exception as e:
+        error_msg = "Failed to retrieve mobile dashboard data"
+        if not IS_PRODUCTION:
+            error_msg += f": {str(e)}"
+            print(f"Error getting mobile dashboard: {e}")
         raise HTTPException(status_code=500, detail=error_msg)
 
 # Run server (for local development)

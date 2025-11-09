@@ -3,6 +3,8 @@ import { AppStep, BananaMetadata } from './types';
 import SmartCameraCapture from './components/SmartCameraCapture';
 import PreviewScreen from './components/PreviewScreen';
 import MetadataForm from './components/MetadataForm';
+import ConfirmationScreen from './components/ConfirmationScreen';
+import ProgressDashboard from './components/ProgressDashboard';
 import { SpinnerIcon } from './components/icons/SpinnerIcon';
 import { CheckIcon } from './components/icons/CheckIcon';
 import { resizeImage } from './utils/imageUtils';
@@ -11,6 +13,12 @@ import WelcomeScreen from './components/WelcomeScreen';
 import FallingBananasBackground from './components/FallingBananasBackground';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { LoginScreen } from './components/LoginScreen';
+
+interface BananaHistory {
+  lastStage: string;
+  lastCaptureDate: string;
+  captureCount: number;
+}
 
 const AuthenticatedApp: React.FC = () => {
   const { isAuthenticated, isLoading, tokenExpiryWarning, dismissExpiryWarning } = useAuth();
@@ -24,6 +32,8 @@ const AuthenticatedApp: React.FC = () => {
     captureTime: '',
     stage: '',
   });
+  const [bananaHistory, setBananaHistory] = useState<BananaHistory | null>(null);
+  const [showProgressDashboard, setShowProgressDashboard] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const handleError = useCallback((message: string) => {
@@ -74,8 +84,13 @@ const AuthenticatedApp: React.FC = () => {
     setStep(AppStep.METADATA);
   }, []);
 
-  const handleMetadataSubmit = useCallback(async (data: BananaMetadata) => {
+  const handleMetadataSubmit = useCallback((data: BananaMetadata, history: BananaHistory | null) => {
     setMetadata(data);
+    setBananaHistory(history);
+    setStep(AppStep.CONFIRMATION);
+  }, []);
+
+  const handleConfirmUpload = useCallback(async () => {
     setStep(AppStep.UPLOADING);
 
     try {
@@ -84,7 +99,7 @@ const AuthenticatedApp: React.FC = () => {
       // Step 1: Generate filename with timestamp
       console.log('[UPLOAD] Step 1: Generate filename');
       const timestamp = Date.now();
-      const filename = `${data.batchId}/${data.bananaId}_${timestamp}.jpg`;
+      const filename = `${metadata.batchId}/${metadata.bananaId}_${timestamp}.jpg`;
       console.log('[UPLOAD] Filename:', filename);
 
       // Step 2: Get signed URL from backend
@@ -118,7 +133,7 @@ const AuthenticatedApp: React.FC = () => {
       // Step 5: Save metadata to MongoDB
       console.log('[UPLOAD] Step 5: Save metadata to MongoDB');
       await saveMetadata({
-        ...data,
+        ...metadata,
         objectPath,
         fileSizeBytes: imageBlob.size,
       });
@@ -143,7 +158,22 @@ const AuthenticatedApp: React.FC = () => {
 
       handleError(`Upload failed: ${errorMessage}`);
     }
-  }, [resizedImage, handleError]);
+  }, [metadata, resizedImage, handleError]);
+
+  const handleEditFromConfirmation = useCallback(() => {
+    setStep(AppStep.METADATA);
+  }, []);
+
+  const handleRetakeFromConfirmation = useCallback(() => {
+    setCapturedImage(null);
+    setResizedImage(null);
+    setBananaHistory(null);
+    setStep(AppStep.CAPTURING);
+  }, []);
+
+  const handleCancelFromConfirmation = useCallback(() => {
+    handleReset();
+  }, [handleReset]);
 
   const handleStartOver = useCallback(() => {
     setCapturedImage(null);
@@ -162,7 +192,7 @@ const AuthenticatedApp: React.FC = () => {
   const renderStep = () => {
     switch (step) {
       case AppStep.WELCOME:
-        return <WelcomeScreen onStart={handleStartCapture} />;
+        return <WelcomeScreen onStart={handleStartCapture} onShowProgress={() => setShowProgressDashboard(true)} />;
       case AppStep.CAPTURING:
         return <SmartCameraCapture onCapture={handleCapture} onError={handleError} onClose={handleReset} />;
       case AppStep.PREVIEW:
@@ -185,6 +215,22 @@ const AuthenticatedApp: React.FC = () => {
               initialMetadata={metadata}
               onRecapture={handleStartOver}
               onClose={handleReset}
+            />
+          )
+        );
+      case AppStep.CONFIRMATION:
+        return (
+          resizedImage && (
+            <ConfirmationScreen
+              imageDataUrl={resizedImage}
+              metadata={metadata}
+              fileSizeBytes={resizedImage ? new Blob([atob(resizedImage.split(',')[1])]).size : 0}
+              imageResolution="1024×1024"
+              bananaHistory={bananaHistory}
+              onEdit={handleEditFromConfirmation}
+              onUpload={handleConfirmUpload}
+              onRetake={handleRetakeFromConfirmation}
+              onCancel={handleCancelFromConfirmation}
             />
           )
         );
@@ -325,6 +371,11 @@ const AuthenticatedApp: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Progress Dashboard Modal */}
+      {showProgressDashboard && (
+        <ProgressDashboard onClose={() => setShowProgressDashboard(false)} />
+      )}
     </main>
   );
 };

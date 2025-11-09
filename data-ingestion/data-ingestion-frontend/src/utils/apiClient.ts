@@ -210,11 +210,17 @@ export async function saveMetadata(metadata: {
 }
 
 /**
- * Look up batch ID for a given banana ID
+ * Look up batch ID and capture history for a given banana ID
  */
 export async function lookupBanana(
   bananaId: string
-): Promise<{ found: boolean; batchId?: string }> {
+): Promise<{
+  found: boolean;
+  batchId?: string;
+  lastStage?: string;
+  lastCaptureDate?: string;
+  captureCount?: number;
+}> {
   console.log('[API] Looking up banana:', bananaId);
 
   const controller = new AbortController();
@@ -251,12 +257,79 @@ export async function lookupBanana(
     }
 
     const result = await response.json();
-    console.log('[API] Lookup result:', result.found ? `✓ Found in ${result.batchId}` : 'ℹ Not found (new banana)');
+    console.log('[API] Lookup result:', result.found
+      ? `✓ Found in ${result.batchId} (${result.lastStage}, ${result.captureCount} captures)`
+      : 'ℹ Not found (new banana)');
     return result;
   } catch (error) {
     clearTimeout(timeoutId);
     if (error.name === 'AbortError') {
       console.error('[API] Lookup timed out after 30 seconds');
+      throw new ApiError(408, 'Request timed out - please check your connection');
+    }
+    throw error;
+  }
+}
+
+/**
+ * Get mobile dashboard analytics
+ */
+export async function getMobileDashboard(): Promise<{
+  totalImages: number;
+  progressToGoal: number;
+  goal: number;
+  stageDistribution: Array<{ stage: string; count: number }>;
+  storage: {
+    totalStorageBytes: number;
+    totalStorageFormatted: string;
+    totalPhotos: number;
+    averagePerPhotoBytes: number;
+    averagePerPhotoFormatted: string;
+    estimatedMonthlyCostUSD: number;
+  };
+}> {
+  console.log('[API] Getting mobile dashboard analytics');
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+
+  try {
+    const token = getAuthToken();
+    const headers: HeadersInit = {};
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    const response = await fetch(`${BACKEND_URL}/analytics/mobile-dashboard`, {
+      method: 'GET',
+      headers,
+      signal: controller.signal,
+    });
+
+    clearTimeout(timeoutId);
+
+    console.log('[API] Mobile dashboard response:', response.status, response.statusText);
+
+    if (!response.ok) {
+      const error = await response.text();
+      console.error('[API] Mobile dashboard failed:', response.status, error);
+
+      // Automatically logout on authentication failures
+      if ((response.status === 401 || response.status === 403) && logoutCallback) {
+        console.error('[API] Authentication failed, logging out automatically');
+        logoutCallback();
+      }
+
+      throw new ApiError(response.status, `Failed to get mobile dashboard: ${error}`);
+    }
+
+    const result = await response.json();
+    console.log('[API] ✓ Mobile dashboard retrieved');
+    return result;
+  } catch (error) {
+    clearTimeout(timeoutId);
+    if (error.name === 'AbortError') {
+      console.error('[API] Mobile dashboard timed out after 30 seconds');
       throw new ApiError(408, 'Request timed out - please check your connection');
     }
     throw error;

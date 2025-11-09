@@ -3,6 +3,7 @@ export enum AppStep {
   CAPTURING,
   PREVIEW,
   METADATA,
+  CONFIRMATION,
   UPLOADING,
   SUCCESS,
   ERROR,

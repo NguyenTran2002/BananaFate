@@ -7,7 +7,7 @@ import { lookupBanana, ApiError } from '../utils/apiClient';
 
 interface MetadataFormProps {
   imageDataUrl: string;
-  onSubmit: (data: BananaMetadata) => void;
+  onSubmit: (data: BananaMetadata, history: BananaHistory | null) => void;
   initialMetadata: BananaMetadata;
   onRecapture: () => void;
   onClose: () => void;
@@ -17,11 +17,18 @@ const STAGES = Object.values(RipenessStage);
 
 type LookupState = 'idle' | 'loading' | 'found' | 'not-found' | 'error';
 
+interface BananaHistory {
+  lastStage: string;
+  lastCaptureDate: string;
+  captureCount: number;
+}
+
 const MetadataForm: React.FC<MetadataFormProps> = ({ imageDataUrl, onSubmit, initialMetadata, onRecapture, onClose }) => {
   const [formData, setFormData] = useState<BananaMetadata>(initialMetadata);
   const [isGuideOpen, setIsGuideOpen] = useState(false);
   const [lookupState, setLookupState] = useState<LookupState>('idle');
   const [lookupMessage, setLookupMessage] = useState<string>('');
+  const [bananaHistory, setBananaHistory] = useState<BananaHistory | null>(null);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -31,6 +38,7 @@ const MetadataForm: React.FC<MetadataFormProps> = ({ imageDataUrl, onSubmit, ini
     if (name === 'bananaId' && lookupState !== 'idle') {
       setLookupState('idle');
       setLookupMessage('');
+      setBananaHistory(null);
     }
   };
 
@@ -45,6 +53,7 @@ const MetadataForm: React.FC<MetadataFormProps> = ({ imageDataUrl, onSubmit, ini
 
     setLookupState('loading');
     setLookupMessage('');
+    setBananaHistory(null);
 
     try {
       const result = await lookupBanana(bananaId);
@@ -53,6 +62,15 @@ const MetadataForm: React.FC<MetadataFormProps> = ({ imageDataUrl, onSubmit, ini
         setFormData(prev => ({ ...prev, batchId: result.batchId! }));
         setLookupState('found');
         setLookupMessage(`Found in ${result.batchId}`);
+
+        // Store banana history if available
+        if (result.lastStage && result.lastCaptureDate && result.captureCount) {
+          setBananaHistory({
+            lastStage: result.lastStage,
+            lastCaptureDate: result.lastCaptureDate,
+            captureCount: result.captureCount,
+          });
+        }
       } else {
         setLookupState('not-found');
         setLookupMessage('New banana - please enter Batch ID');
@@ -71,13 +89,14 @@ const MetadataForm: React.FC<MetadataFormProps> = ({ imageDataUrl, onSubmit, ini
   const handleClearLookup = () => {
     setLookupState('idle');
     setLookupMessage('');
+    setBananaHistory(null);
     setFormData(prev => ({ ...prev, batchId: '' }));
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (formData.batchId.trim() && formData.bananaId.trim() && formData.stage) {
-      onSubmit(formData);
+      onSubmit(formData, bananaHistory);
     }
   };
 
@@ -203,6 +222,23 @@ const MetadataForm: React.FC<MetadataFormProps> = ({ imageDataUrl, onSubmit, ini
                       <option key={stage} value={stage}>{stage}</option>
                     ))}
                   </select>
+                  {bananaHistory && (
+                    <div className="mt-2 p-2 bg-blue-900 bg-opacity-30 border border-blue-500 rounded-md">
+                      <p className="text-xs text-blue-300 font-semibold mb-1">Previous capture:</p>
+                      <p className="text-sm text-blue-100">
+                        Last stage: <span className="font-bold">{bananaHistory.lastStage}</span>
+                      </p>
+                      <p className="text-xs text-blue-200 mt-0.5">
+                        {new Date(bananaHistory.lastCaptureDate).toLocaleDateString('en-US', {
+                          month: 'short',
+                          day: 'numeric',
+                          year: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        })} • {bananaHistory.captureCount} photo{bananaHistory.captureCount !== 1 ? 's' : ''} total
+                      </p>
+                    </div>
+                  )}
                 </div>
                 <div>
                   <label htmlFor="notes" className="block text-sm font-medium text-dark-subtext">Optional Notes</label>
