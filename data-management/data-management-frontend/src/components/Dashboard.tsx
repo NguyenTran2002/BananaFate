@@ -124,16 +124,51 @@ export function Dashboard({ onNavigate }: DashboardProps) {
       {/* Stage Distribution */}
       <div className="bg-ocean-surface rounded-xl p-6 border border-brand-yellow/20">
         <h2 className="text-2xl font-bold text-brand-yellow mb-6">Images by Ripeness Stage</h2>
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-          {Object.entries(counts.byStage).map(([stage, count]) => (
-            <div
-              key={stage}
-              className="bg-ocean-deep rounded-lg p-4 text-center border border-brand-green/20"
-            >
-              <div className="text-3xl font-bold text-brand-green mb-1">{count}</div>
-              <div className="text-dark-subtext text-xs">{stage}</div>
-            </div>
-          ))}
+        <div className="space-y-3">
+          {(() => {
+            // Define stage order and colors
+            const stageOrder = ['Under Ripe', 'Barely Ripe', 'Ripe', 'Very Ripe', 'Over Ripe', 'Death'];
+            const stageColors: Record<string, string> = {
+              'Under Ripe': '#7DBA29',
+              'Barely Ripe': '#D4DE21',
+              'Ripe': '#FFD700',
+              'Very Ripe': '#E8B500',
+              'Over Ripe': '#8B4513',
+              'Death': '#6B7280',
+            };
+
+            // Calculate max count for scaling
+            const maxCount = Math.max(...Object.values(counts.byStage));
+
+            return stageOrder.map((stage) => {
+              const count = counts.byStage[stage] || 0;
+              const percentage = maxCount > 0 ? (count / maxCount) * 100 : 0;
+
+              return (
+                <div key={stage} className="flex items-center space-x-3">
+                  {/* Stage label */}
+                  <div className="w-20 text-right text-sm font-medium text-dark-text">
+                    {stage}
+                  </div>
+
+                  {/* Bar */}
+                  <div className="flex-1 bg-ocean-deep rounded-lg h-8 relative overflow-hidden">
+                    <div
+                      className="h-full rounded-lg transition-all duration-300 flex items-center justify-end pr-3"
+                      style={{
+                        width: `${percentage}%`,
+                        backgroundColor: stageColors[stage],
+                      }}
+                    >
+                      <span className="text-sm font-semibold text-white">
+                        {count}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              );
+            });
+          })()}
         </div>
       </div>
 

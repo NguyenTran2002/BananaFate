@@ -85,17 +85,15 @@ export function Analytics() {
     );
   }
 
-  // Color palettes
+  // Color palettes - definitive color scheme from RipenessGuideVisual
   const stageColors: Record<string, string> = {
-    'Under Ripe': '#32CD32',
-    'Barely Ripe': '#90EE90',
+    'Under Ripe': '#7DBA29',
+    'Barely Ripe': '#D4DE21',
     'Ripe': '#FFD700',
-    'Very Ripe': '#FFA500',
-    'Over Ripe': '#FF4500',
-    Death: '#8B0000',
+    'Very Ripe': '#E8B500',
+    'Over Ripe': '#8B4513',
+    'Death': '#6B7280',
   };
-
-  const pieColors = ['#FFD700', '#32CD32', '#FF4500', '#FFA500', '#90EE90', '#8B0000'];
 
   // Prepare batch data for chart
   const batchData = Object.entries(counts.byBatch).map(([batch, count]) => ({
@@ -151,6 +149,50 @@ export function Analytics() {
       {/* Collection Progress */}
       <CollectionProgress totalImages={counts.totalImages} />
 
+      {/* Stage Distribution - Bar Chart */}
+      <div className="bg-ocean-surface rounded-xl p-6 border border-brand-yellow/20">
+        <h2 className="text-2xl font-bold text-brand-yellow mb-6">Images by Ripeness Stage</h2>
+        <div className="space-y-3">
+          {(() => {
+            // Define stage order
+            const stageOrder = ['Under Ripe', 'Barely Ripe', 'Ripe', 'Very Ripe', 'Over Ripe', 'Death'];
+
+            // Calculate max count for scaling
+            const maxCount = Math.max(...distribution.map((d) => d.count));
+
+            return stageOrder.map((stage) => {
+              const stageData = distribution.find((d) => d.stage === stage);
+              const count = stageData?.count || 0;
+              const percentage = maxCount > 0 ? (count / maxCount) * 100 : 0;
+
+              return (
+                <div key={stage} className="flex items-center space-x-3">
+                  {/* Stage label */}
+                  <div className="w-20 text-right text-sm font-medium text-dark-text">
+                    {stage}
+                  </div>
+
+                  {/* Bar */}
+                  <div className="flex-1 bg-ocean-deep rounded-lg h-8 relative overflow-hidden">
+                    <div
+                      className="h-full rounded-lg transition-all duration-300 flex items-center justify-end pr-3"
+                      style={{
+                        width: `${percentage}%`,
+                        backgroundColor: stageColors[stage],
+                      }}
+                    >
+                      <span className="text-sm font-semibold text-white">
+                        {count}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              );
+            });
+          })()}
+        </div>
+      </div>
+
       {/* Stage Distribution - Pie Chart */}
       <div className="bg-ocean-surface rounded-xl p-6 border border-brand-yellow/20">
         <h2 className="text-2xl font-bold text-brand-yellow mb-6">Ripeness Stage Distribution</h2>
@@ -167,18 +209,10 @@ export function Analytics() {
                 label={(entry) => `${entry.stage}: ${entry.count} (${entry.percentage}%)`}
                 labelLine={{ stroke: '#edf2f7' }}
               >
-                {distribution.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={pieColors[index % pieColors.length]} />
+                {distribution.map((entry) => (
+                  <Cell key={`cell-${entry.stage}`} fill={stageColors[entry.stage] || '#FFD700'} />
                 ))}
               </Pie>
-              <Tooltip
-                contentStyle={{
-                  backgroundColor: '#1b263b',
-                  border: '1px solid #FFD700',
-                  borderRadius: '8px',
-                  color: '#edf2f7',
-                }}
-              />
               <Legend wrapperStyle={{ color: '#edf2f7' }} />
             </PieChart>
           </ResponsiveContainer>
@@ -237,47 +271,6 @@ export function Analytics() {
               <Bar dataKey="count" fill="#32CD32" radius={[8, 8, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
-        </div>
-      </div>
-
-      {/* Stage Statistics Table */}
-      <div className="bg-ocean-surface rounded-xl p-6 border border-brand-yellow/20">
-        <h2 className="text-2xl font-bold text-brand-yellow mb-6">Stage Statistics</h2>
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-brand-yellow/20">
-                <th className="text-left py-3 px-4 text-dark-subtext font-semibold">Stage</th>
-                <th className="text-right py-3 px-4 text-dark-subtext font-semibold">Count</th>
-                <th className="text-right py-3 px-4 text-dark-subtext font-semibold">Percentage</th>
-                <th className="text-left py-3 px-4 text-dark-subtext font-semibold">Visual</th>
-              </tr>
-            </thead>
-            <tbody>
-              {distribution.map((item) => (
-                <tr key={item.stage} className="border-b border-dark-subtext/10">
-                  <td className="py-3 px-4 text-dark-text font-medium">{item.stage}</td>
-                  <td className="py-3 px-4 text-right text-brand-green font-semibold">
-                    {item.count}
-                  </td>
-                  <td className="py-3 px-4 text-right text-brand-yellow font-semibold">
-                    {item.percentage}%
-                  </td>
-                  <td className="py-3 px-4">
-                    <div className="w-full bg-ocean-deep rounded-full h-4">
-                      <div
-                        className="h-4 rounded-full"
-                        style={{
-                          width: `${item.percentage}%`,
-                          backgroundColor: stageColors[item.stage] || '#FFD700',
-                        }}
-                      />
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
         </div>
       </div>
 

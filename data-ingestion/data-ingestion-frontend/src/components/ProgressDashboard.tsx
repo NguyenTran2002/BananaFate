@@ -48,14 +48,14 @@ const ProgressDashboard: React.FC<ProgressDashboardProps> = ({ onClose }) => {
     fetchData();
   }, []);
 
-  // Stage colors mapping
+  // Stage colors mapping - definitive color scheme from RipenessGuideVisual
   const stageColors: Record<string, string> = {
-    'Under Ripe': 'bg-green-600',
-    'Barely Ripe': 'bg-yellow-600',
-    'Ripe': 'bg-brand-yellow',
-    'Very Ripe': 'bg-orange-500',
-    'Over Ripe': 'bg-orange-700',
-    'Death': 'bg-gray-700',
+    'Under Ripe': '#7DBA29',
+    'Barely Ripe': '#D4DE21',
+    'Ripe': '#FFD700',
+    'Very Ripe': '#E8B500',
+    'Over Ripe': '#8B4513',
+    'Death': '#6B7280',
   };
 
   return (
@@ -145,10 +145,11 @@ const ProgressDashboard: React.FC<ProgressDashboardProps> = ({ onClose }) => {
                             <div className="flex-1 flex items-center gap-1">
                               {/* Bar */}
                               <div
-                                className={`h-8 ${stageColors[stage] || 'bg-gray-500'} rounded transition-all duration-300 flex items-center justify-end pr-2`}
+                                className="h-8 rounded transition-all duration-300 flex items-center justify-end pr-2"
                                 style={{
                                   width: count > 0 ? `${(count / maxCount) * 100}%` : '0%',
-                                  minWidth: count > 0 ? '2rem' : '0'
+                                  minWidth: count > 0 ? '2rem' : '0',
+                                  backgroundColor: stageColors[stage] || '#6B7280'
                                 }}
                               >
                                 {/* Count inside bar (white text) */}
