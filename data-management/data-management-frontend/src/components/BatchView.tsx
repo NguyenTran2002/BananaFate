@@ -4,7 +4,7 @@
  * Supports 3-level navigation: Batch list → Batch detail (photos/bananas) → Banana timeline
  */
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { listBatches, getBatchImages, getBatchBananas, getBananaTimeline } from '../utils/apiClient';
 import { BatchSummary, BananaSummary, ImageDocument, DeleteType } from '../types';
 import { ImageGrid } from './ImageGrid';
@@ -49,9 +49,27 @@ export function BatchView() {
   const [editingImage, setEditingImage] = useState<ImageDocument | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<{ type: DeleteType; target: any } | null>(null);
 
+  // Scroll position restoration for bananas view
+  const [bananasScrollPosition, setBananasScrollPosition] = useState<number>(0);
+  const bananasContainerRef = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
     loadBatches();
   }, []);
+
+  // Restore scroll position when returning to bananas list
+  useEffect(() => {
+    if (!selectedBanana && viewMode === 'bananas' && bananasScrollPosition > 0 && bananasContainerRef.current) {
+      // Find the scrollable parent (the main element in App.tsx)
+      const scrollableParent = bananasContainerRef.current.closest('.overflow-y-auto');
+      if (scrollableParent) {
+        // Use setTimeout to ensure DOM has updated
+        setTimeout(() => {
+          scrollableParent.scrollTop = bananasScrollPosition;
+        }, 0);
+      }
+    }
+  }, [selectedBanana, viewMode, bananasScrollPosition]);
 
   const loadBatches = async () => {
     try {
@@ -102,6 +120,14 @@ export function BatchView() {
 
   const loadBananaTimeline = async (banana: BananaSummary) => {
     try {
+      // Save scroll position before navigating (only in bananas view)
+      if (viewMode === 'bananas' && bananasContainerRef.current) {
+        const scrollableParent = bananasContainerRef.current.closest('.overflow-y-auto');
+        if (scrollableParent) {
+          setBananasScrollPosition(scrollableParent.scrollTop);
+        }
+      }
+
       setLoadingImages(true);
       setSelectedBanana(banana);
       const images = await getBananaTimeline(banana.batchId, banana.bananaId);
@@ -502,7 +528,7 @@ export function BatchView() {
                 </div>
               </div>
             ) : (
-              <>
+              <div ref={bananasContainerRef} className="space-y-6">
                 {/* Sorting & Pagination Controls */}
                 {batchBananas.length > 0 && (
                   <div className="bg-ocean-surface rounded-xl p-4 border border-brand-yellow/20">
@@ -699,7 +725,7 @@ export function BatchView() {
                     <p className="text-dark-subtext text-lg">No bananas found in this batch</p>
                   </div>
                 )}
-              </>
+              </div>
             )}
           </>
         )}

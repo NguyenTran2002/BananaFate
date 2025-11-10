@@ -3,7 +3,7 @@
  * Display all bananas with their timeline progression
  */
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { listBananas, getBananaTimeline } from '../utils/apiClient';
 import { BananaSummary, ImageDocument, DeleteType } from '../types';
 import { ImageGrid } from './ImageGrid';
@@ -34,9 +34,27 @@ export function BananaView() {
   const [editingImage, setEditingImage] = useState<ImageDocument | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<{ type: DeleteType; target: any } | null>(null);
 
+  // Scroll position restoration
+  const [scrollPosition, setScrollPosition] = useState<number>(0);
+  const containerRef = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
     loadBananas();
   }, []);
+
+  // Restore scroll position when returning to banana list
+  useEffect(() => {
+    if (!selectedBanana && scrollPosition > 0 && containerRef.current) {
+      // Find the scrollable parent (the main element in App.tsx)
+      const scrollableParent = containerRef.current.closest('.overflow-y-auto');
+      if (scrollableParent) {
+        // Use setTimeout to ensure DOM has updated
+        setTimeout(() => {
+          scrollableParent.scrollTop = scrollPosition;
+        }, 0);
+      }
+    }
+  }, [selectedBanana, scrollPosition]);
 
   const loadBananas = async () => {
     try {
@@ -53,6 +71,14 @@ export function BananaView() {
 
   const loadBananaTimeline = async (banana: BananaSummary) => {
     try {
+      // Save scroll position before navigating
+      if (containerRef.current) {
+        const scrollableParent = containerRef.current.closest('.overflow-y-auto');
+        if (scrollableParent) {
+          setScrollPosition(scrollableParent.scrollTop);
+        }
+      }
+
       setLoadingImages(true);
       setSelectedBanana(banana);
       const images = await getBananaTimeline(banana.batchId, banana.bananaId);
@@ -184,7 +210,7 @@ export function BananaView() {
   // Banana list view
   if (!selectedBanana) {
     return (
-      <div className="space-y-6">
+      <div ref={containerRef} className="space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
