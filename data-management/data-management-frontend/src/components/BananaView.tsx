@@ -57,9 +57,9 @@ export function BananaView() {
       setSelectedBanana(banana);
       const images = await getBananaTimeline(banana.batchId, banana.bananaId);
 
-      // Sort images by captureTime ascending (oldest first)
+      // Sort images by uploadedAt ascending (oldest first)
       const sortedImages = [...images].sort((a, b) => {
-        return new Date(a.captureTime).getTime() - new Date(b.captureTime).getTime();
+        return new Date(a.uploadedAt).getTime() - new Date(b.uploadedAt).getTime();
       });
 
       setBananaImages(sortedImages);

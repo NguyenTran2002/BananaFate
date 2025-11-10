@@ -406,8 +406,8 @@ async def list_batches(auth: dict = Depends(verify_auth_token)):
                     "_id": "$batchId",
                     "imageCount": {"$sum": 1},
                     "uniqueBananas": {"$addToSet": "$bananaId"},
-                    "firstCaptureTime": {"$min": "$captureTime"},
-                    "lastCaptureTime": {"$max": "$captureTime"}
+                    "firstCaptureTime": {"$min": "$uploadedAt"},
+                    "lastCaptureTime": {"$max": "$uploadedAt"}
                 }
             },
             {
@@ -457,7 +457,7 @@ async def get_batch_images(batch_id: str, auth: dict = Depends(verify_auth_token
     """
     try:
         collection = get_collection()
-        images = list(collection.find({"batchId": batch_id}).sort("captureTime", 1))
+        images = list(collection.find({"batchId": batch_id}).sort("uploadedAt", 1))
         return [serialize_document(img) for img in images]
     except Exception as e:
         if not IS_PRODUCTION:
@@ -498,8 +498,8 @@ async def list_bananas(auth: dict = Depends(verify_auth_token)):
                         "bananaId": "$bananaId"
                     },
                     "imageCount": {"$sum": 1},
-                    "firstCaptureTime": {"$min": "$captureTime"},
-                    "lastCaptureTime": {"$max": "$captureTime"},
+                    "firstCaptureTime": {"$min": "$uploadedAt"},
+                    "lastCaptureTime": {"$max": "$uploadedAt"},
                     "stageCaptureTimes": {
                         "$push": {
                             "stage": "$stage",
@@ -576,7 +576,7 @@ async def get_banana_timeline(batch_id: str, banana_id: str, auth: dict = Depend
         images = list(collection.find({
             "batchId": batch_id,
             "bananaId": banana_id
-        }).sort("captureTime", 1))
+        }).sort("uploadedAt", 1))
         return [serialize_document(img) for img in images]
     except Exception as e:
         if not IS_PRODUCTION:
