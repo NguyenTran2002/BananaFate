@@ -56,7 +56,10 @@ export interface BananaSummary {
   imageCount: number;
   firstCaptureTime: string;
   lastCaptureTime: string;
-  stages: string[];
+  stages: Array<{
+    stage: string;
+    firstCaptureTime: string;
+  }>;
 }
 
 // Analytics data

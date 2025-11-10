@@ -465,7 +465,7 @@ async def get_batch_images(batch_id: str, auth: dict = Depends(verify_auth_token
 @app.get("/bananas")
 async def list_bananas(auth: dict = Depends(verify_auth_token)):
     """
-    List all unique bananas with metadata (image count, date range).
+    List all unique bananas with metadata (image count, date range, stages sorted chronologically).
 
     Requires: Authentication token
 
@@ -477,7 +477,11 @@ async def list_bananas(auth: dict = Depends(verify_auth_token)):
                 "imageCount": 7,
                 "firstCaptureTime": "2025-11-01T08:00:00Z",
                 "lastCaptureTime": "2025-11-05T18:30:00Z",
-                "stages": ["Barely Ripe", "Ripe", "Very Ripe"]
+                "stages": [
+                    {"stage": "Barely Ripe", "firstCaptureTime": "2025-11-01T08:00:00Z"},
+                    {"stage": "Ripe", "firstCaptureTime": "2025-11-03T12:00:00Z"},
+                    {"stage": "Very Ripe", "firstCaptureTime": "2025-11-05T18:30:00Z"}
+                ]
             }
         ]
     """
@@ -494,7 +498,12 @@ async def list_bananas(auth: dict = Depends(verify_auth_token)):
                     "imageCount": {"$sum": 1},
                     "firstCaptureTime": {"$min": "$captureTime"},
                     "lastCaptureTime": {"$max": "$captureTime"},
-                    "stages": {"$addToSet": "$stage"}
+                    "stageCaptureTimes": {
+                        "$push": {
+                            "stage": "$stage",
+                            "captureTime": "$captureTime"
+                        }
+                    }
                 }
             },
             {
@@ -504,7 +513,7 @@ async def list_bananas(auth: dict = Depends(verify_auth_token)):
                     "imageCount": 1,
                     "firstCaptureTime": 1,
                     "lastCaptureTime": 1,
-                    "stages": 1,
+                    "stageCaptureTimes": 1,
                     "_id": 0
                 }
             },
@@ -512,6 +521,35 @@ async def list_bananas(auth: dict = Depends(verify_auth_token)):
         ]
 
         bananas = list(collection.aggregate(pipeline))
+
+        # Process stages: extract unique stages with earliest capture time, sorted chronologically
+        for banana in bananas:
+            stage_times = {}
+            for item in banana.get('stageCaptureTimes', []):
+                stage = item['stage']
+                capture_time = item['captureTime']
+
+                # Ensure capture_time is a datetime object for proper comparison
+                if isinstance(capture_time, str):
+                    try:
+                        capture_time = datetime.fromisoformat(capture_time.replace('Z', '+00:00'))
+                    except:
+                        # Try parsing MongoDB's date format or other formats
+                        capture_time = datetime.strptime(capture_time, '%m/%d/%Y, %I:%M:%S %p')
+
+                if stage not in stage_times or capture_time < stage_times[stage]:
+                    stage_times[stage] = capture_time
+
+            # Convert to sorted list of {stage, firstCaptureTime}
+            # Sort by datetime value, then convert to ISO format string
+            sorted_stages = sorted(stage_times.items(), key=lambda x: x[1])
+            banana['stages'] = [
+                {"stage": stage, "firstCaptureTime": time.isoformat() if hasattr(time, 'isoformat') else str(time)}
+                for stage, time in sorted_stages
+            ]
+            # Remove temporary field
+            del banana['stageCaptureTimes']
+
         return bananas
     except Exception as e:
         if not IS_PRODUCTION:

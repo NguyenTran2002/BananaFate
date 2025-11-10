@@ -52,7 +52,13 @@ export function BananaView() {
       setLoadingImages(true);
       setSelectedBanana(banana);
       const images = await getBananaTimeline(banana.batchId, banana.bananaId);
-      setBananaImages(images);
+
+      // Sort images by captureTime ascending (oldest first)
+      const sortedImages = [...images].sort((a, b) => {
+        return new Date(a.captureTime).getTime() - new Date(b.captureTime).getTime();
+      });
+
+      setBananaImages(sortedImages);
     } catch (err: any) {
       setError(err.message || 'Failed to load timeline');
     } finally {
@@ -277,12 +283,12 @@ export function BananaView() {
                 <div className="mb-4">
                   <div className="text-xs text-dark-subtext uppercase mb-2">Ripeness Stages</div>
                   <div className="flex flex-wrap gap-1">
-                    {banana.stages.map((stage) => (
+                    {banana.stages.map((stageInfo, index) => (
                       <span
-                        key={stage}
+                        key={`${banana.bananaId}-${stageInfo.stage}-${index}`}
                         className="text-xs bg-brand-green/20 text-brand-green px-2 py-1 rounded"
                       >
-                        {stage}
+                        {stageInfo.stage}
                       </span>
                     ))}
                   </div>
@@ -443,10 +449,13 @@ export function BananaView() {
       <div className="bg-ocean-surface rounded-xl p-6 border border-brand-yellow/20">
         <h2 className="text-xl font-bold text-brand-yellow mb-4">Ripeness Progression</h2>
         <div className="flex items-center space-x-2 overflow-x-auto">
-          {selectedBanana.stages.map((stage, index) => (
+          {selectedBanana.stages.map((stageInfo, index) => (
             <React.Fragment key={index}>
               <div className="bg-brand-green/20 text-brand-green px-4 py-2 rounded-lg font-semibold whitespace-nowrap">
-                {stage}
+                <div>{stageInfo.stage}</div>
+                <div className="text-xs text-brand-green/70 mt-1">
+                  {new Date(stageInfo.firstCaptureTime).toLocaleDateString()}
+                </div>
               </div>
               {index < selectedBanana.stages.length - 1 && (
                 <div className="text-brand-yellow text-2xl">→</div>
