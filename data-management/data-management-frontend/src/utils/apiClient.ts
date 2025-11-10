@@ -152,6 +152,13 @@ export async function getBatchImages(batchId: string): Promise<ImageDocument[]> 
   return result;
 }
 
+export async function getBatchBananas(batchId: string): Promise<BananaSummary[]> {
+  console.log('[API] Fetching bananas for batch:', batchId);
+  const result = await makeAuthenticatedRequest<BananaSummary[]>(`/batches/${batchId}/bananas`);
+  console.log('[API] Retrieved', result.length, 'bananas');
+  return result;
+}
+
 export interface DeleteResponse {
   success: boolean;
   deletedCount: number;
