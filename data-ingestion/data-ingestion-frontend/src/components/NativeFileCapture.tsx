@@ -1,8 +1,11 @@
 import React, { useRef, useState, useCallback, useEffect } from 'react';
 import { BananaGuideIcon } from './icons/BananaGuideIcon';
+import { PlusIcon } from './icons/PlusIcon';
+import { MinusIcon } from './icons/MinusIcon';
 import { getImageResolution, StreamResolution, detectSafariVersion } from '../utils/cameraCapabilities';
 import ResolutionDisplay from './ResolutionDisplay';
 import { cropToSquare } from '../utils/imageUtils';
+import { useImageZoom } from '../hooks/useImageZoom';
 
 interface NativeFileCaptureProps {
   onCapture: (imageDataUrl: string) => void;
@@ -22,6 +25,9 @@ const NativeFileCapture: React.FC<NativeFileCaptureProps> = ({ onCapture, onErro
   const [resolution, setResolution] = useState<StreamResolution | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const safariInfo = detectSafariVersion();
+
+  // Zoom hook for preview
+  const previewZoom = useImageZoom();
 
   // Auto-open camera on mount for iOS users
   useEffect(() => {
@@ -94,11 +100,12 @@ const NativeFileCapture: React.FC<NativeFileCaptureProps> = ({ onCapture, onErro
     setPreviewUrl(null);
     setCapturedFile(null);
     setResolution(null);
+    previewZoom.resetZoom();
     // Trigger camera again
     setTimeout(() => {
       handleCaptureClick();
     }, 100);
-  }, [handleCaptureClick]);
+  }, [handleCaptureClick, previewZoom]);
 
   const handleConfirm = useCallback(async () => {
     if (previewUrl) {
@@ -157,9 +164,31 @@ const NativeFileCapture: React.FC<NativeFileCaptureProps> = ({ onCapture, onErro
         )}
 
         {previewUrl && (
-          // Preview with overlay verification
+          // Preview with overlay verification and zoom
           <>
-            <img src={previewUrl} alt="Captured" className="w-full h-full object-cover" />
+            <div
+              ref={previewZoom.containerRef}
+              className="absolute inset-0 w-full h-full cursor-move touch-none"
+              onTouchStart={previewZoom.handleTouchStart}
+              onTouchMove={previewZoom.handleTouchMove}
+              onTouchEnd={previewZoom.handleTouchEnd}
+              onMouseDown={previewZoom.handleMouseDown}
+              onMouseMove={previewZoom.handleMouseMove}
+              onMouseUp={previewZoom.handleMouseUp}
+              onMouseLeave={previewZoom.handleMouseUp}
+            >
+              <img
+                src={previewUrl}
+                alt="Captured"
+                className="w-full h-full object-cover pointer-events-none select-none"
+                style={{
+                  transform: `scale(${previewZoom.scale}) translate(${previewZoom.position.x / previewZoom.scale}px, ${previewZoom.position.y / previewZoom.scale}px)`,
+                  transition: previewZoom.scale === 1 ? 'transform 0.2s ease-out' : 'none',
+                }}
+                draggable={false}
+              />
+            </div>
+
             {/* Overlay to verify orientation */}
             <div className="absolute inset-0 pointer-events-none">
               <div className="absolute inset-0 border-2 border-dashed border-brand-yellow rounded-lg" />
@@ -176,8 +205,15 @@ const NativeFileCapture: React.FC<NativeFileCaptureProps> = ({ onCapture, onErro
                 </div>
               )}
 
-              {/* Banana Guide Icon - Center */}
-              <div className="absolute inset-0 flex items-center justify-center">
+              {/* Zoom Indicator */}
+              {previewZoom.scale > 1 && (
+                <div className="absolute top-4 right-4 bg-black bg-opacity-70 text-white text-xs px-2 py-1 rounded">
+                  {previewZoom.scale.toFixed(1)}x
+                </div>
+              )}
+
+              {/* Banana Guide Icon - Center (fade when zoomed) */}
+              <div className={`absolute inset-0 flex items-center justify-center transition-opacity duration-200 ${previewZoom.scale > 1 ? 'opacity-0' : 'opacity-100'}`}>
                 <BananaGuideIcon className="w-4/5 h-auto opacity-20" />
               </div>
 
@@ -211,6 +247,29 @@ const NativeFileCapture: React.FC<NativeFileCaptureProps> = ({ onCapture, onErro
         ) : (
           // Confirm/Retake buttons after capture
           <>
+            {/* Zoom Controls */}
+            <div className="flex items-center justify-center gap-2 mb-2">
+              <button
+                onClick={previewZoom.zoomOut}
+                disabled={previewZoom.scale <= 1}
+                className="bg-gray-700 text-white p-2 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-600 transition-colors"
+                aria-label="Zoom out"
+              >
+                <MinusIcon className="w-5 h-5" />
+              </button>
+              <span className="text-dark-text text-sm font-mono min-w-[3rem] text-center">
+                {previewZoom.scale.toFixed(1)}x
+              </span>
+              <button
+                onClick={previewZoom.zoomIn}
+                disabled={previewZoom.scale >= 4}
+                className="bg-gray-700 text-white p-2 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-600 transition-colors"
+                aria-label="Zoom in"
+              >
+                <PlusIcon className="w-5 h-5" />
+              </button>
+            </div>
+
             <button
               onClick={handleConfirm}
               className="bg-green-500 text-white font-semibold px-8 py-4 rounded-lg hover:bg-green-600 transition-colors text-lg w-full max-w-xs"

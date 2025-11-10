@@ -1,9 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { BananaMetadata, RipenessStage } from '../types';
 import { UploadIcon } from './icons/UploadIcon';
 import { QuestionMarkIcon } from './icons/QuestionMarkIcon';
+import { PlusIcon } from './icons/PlusIcon';
+import { MinusIcon } from './icons/MinusIcon';
+import { SpinnerIcon } from './icons/SpinnerIcon';
 import RipenessGuideModal from './RipenessGuideModal';
-import { lookupBanana, ApiError } from '../utils/apiClient';
+import { lookupBanana, getSignedReadUrl, ApiError } from '../utils/apiClient';
+import { useImageZoom } from '../hooks/useImageZoom';
 
 interface MetadataFormProps {
   imageDataUrl: string;
@@ -20,6 +24,7 @@ type LookupState = 'idle' | 'loading' | 'found' | 'not-found' | 'error';
 interface BananaHistory {
   lastStage: string;
   lastCaptureDate: string;
+  lastObjectPath?: string;
   captureCount: number;
 }
 
@@ -29,6 +34,41 @@ const MetadataForm: React.FC<MetadataFormProps> = ({ imageDataUrl, onSubmit, ini
   const [lookupState, setLookupState] = useState<LookupState>('idle');
   const [lookupMessage, setLookupMessage] = useState<string>('');
   const [bananaHistory, setBananaHistory] = useState<BananaHistory | null>(null);
+
+  // State for previous capture image
+  const [previousImageUrl, setPreviousImageUrl] = useState<string | null>(null);
+  const [loadingPreviousImage, setLoadingPreviousImage] = useState(false);
+  const [previousImageError, setPreviousImageError] = useState<string | null>(null);
+
+  // Zoom hooks for both images
+  const currentImageZoom = useImageZoom();
+  const previousImageZoom = useImageZoom();
+
+  // Fetch previous capture image if available
+  useEffect(() => {
+    const fetchPreviousImage = async () => {
+      if (!bananaHistory?.lastObjectPath) {
+        setPreviousImageUrl(null);
+        setPreviousImageError(null);
+        return;
+      }
+
+      setLoadingPreviousImage(true);
+      setPreviousImageError(null);
+
+      try {
+        const result = await getSignedReadUrl(bananaHistory.lastObjectPath);
+        setPreviousImageUrl(result.signedUrl);
+      } catch (error) {
+        console.error('Failed to fetch previous image:', error);
+        setPreviousImageError('Failed to load previous image');
+      } finally {
+        setLoadingPreviousImage(false);
+      }
+    };
+
+    fetchPreviousImage();
+  }, [bananaHistory?.lastObjectPath]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -68,6 +108,7 @@ const MetadataForm: React.FC<MetadataFormProps> = ({ imageDataUrl, onSubmit, ini
           setBananaHistory({
             lastStage: result.lastStage,
             lastCaptureDate: result.lastCaptureDate,
+            lastObjectPath: result.lastObjectPath,
             captureCount: result.captureCount,
           });
         }
@@ -106,13 +147,67 @@ const MetadataForm: React.FC<MetadataFormProps> = ({ imageDataUrl, onSubmit, ini
       <div className="w-full h-full">
         <div className="w-full h-full p-6 overflow-y-auto no-scrollbar">
           <div className="max-w-sm mx-auto">
-            {/* Framed Image */}
-            <div className="bg-brand-yellow p-1.5 rounded-lg shadow-xl mb-6">
-              <img
-                src={imageDataUrl}
-                alt="Banana preview"
-                className="w-full aspect-square object-cover rounded-md"
-              />
+            {/* Current Capture Image with Zoom */}
+            <div className="mb-6">
+              <h3 className="text-sm font-bold mb-2 text-dark-text">Current Capture</h3>
+              {/* Outer border container */}
+              <div className="aspect-square bg-brand-yellow p-1.5 rounded-lg shadow-xl mb-3">
+                {/* Inner zoom container */}
+                <div
+                  ref={currentImageZoom.containerRef}
+                  className="relative w-full h-full overflow-hidden rounded-md cursor-move touch-none"
+                  onTouchStart={currentImageZoom.handleTouchStart}
+                  onTouchMove={currentImageZoom.handleTouchMove}
+                  onTouchEnd={currentImageZoom.handleTouchEnd}
+                  onMouseDown={currentImageZoom.handleMouseDown}
+                  onMouseMove={currentImageZoom.handleMouseMove}
+                  onMouseUp={currentImageZoom.handleMouseUp}
+                  onMouseLeave={currentImageZoom.handleMouseUp}
+                >
+                  <img
+                    src={imageDataUrl}
+                    alt="Current capture"
+                    className="w-full h-full object-cover pointer-events-none select-none"
+                    style={{
+                      transform: `scale(${currentImageZoom.scale}) translate(${currentImageZoom.position.x / currentImageZoom.scale}px, ${currentImageZoom.position.y / currentImageZoom.scale}px)`,
+                      transition: currentImageZoom.scale === 1 ? 'transform 0.2s ease-out' : 'none',
+                    }}
+                    draggable={false}
+                  />
+
+                  {/* Zoom Indicator */}
+                  {currentImageZoom.scale > 1 && (
+                    <div className="absolute top-2 right-2 bg-black bg-opacity-70 text-white text-xs px-2 py-1 rounded">
+                      {currentImageZoom.scale.toFixed(1)}x
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Zoom Controls */}
+              <div className="flex items-center justify-center gap-2">
+                <button
+                  type="button"
+                  onClick={currentImageZoom.zoomOut}
+                  disabled={currentImageZoom.scale <= 1}
+                  className="bg-gray-700 text-white p-2 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-600 transition-colors"
+                  aria-label="Zoom out"
+                >
+                  <MinusIcon className="w-5 h-5" />
+                </button>
+                <span className="text-dark-text text-sm font-mono min-w-[3rem] text-center">
+                  {currentImageZoom.scale.toFixed(1)}x
+                </span>
+                <button
+                  type="button"
+                  onClick={currentImageZoom.zoomIn}
+                  disabled={currentImageZoom.scale >= 4}
+                  className="bg-gray-700 text-white p-2 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-600 transition-colors"
+                  aria-label="Zoom in"
+                >
+                  <PlusIcon className="w-5 h-5" />
+                </button>
+              </div>
             </div>
 
             {/* Form */}
@@ -237,6 +332,83 @@ const MetadataForm: React.FC<MetadataFormProps> = ({ imageDataUrl, onSubmit, ini
                           minute: '2-digit'
                         })} • {bananaHistory.captureCount} photo{bananaHistory.captureCount !== 1 ? 's' : ''} total
                       </p>
+                    </div>
+                  )}
+
+                  {/* Previous Capture Photo (if available) */}
+                  {bananaHistory && (
+                    <div className="mt-4">
+                      <h4 className="text-sm font-bold mb-2 text-dark-text">Previous Capture Photo</h4>
+                      {loadingPreviousImage ? (
+                        <div className="aspect-square bg-gray-800 rounded-md flex items-center justify-center">
+                          <SpinnerIcon className="w-8 h-8 text-brand-yellow animate-spin" />
+                        </div>
+                      ) : previousImageError ? (
+                        <div className="aspect-square bg-gray-800 rounded-md flex items-center justify-center p-4">
+                          <p className="text-red-400 text-sm text-center">{previousImageError}</p>
+                        </div>
+                      ) : previousImageUrl ? (
+                        <>
+                          {/* Outer border container */}
+                          <div className="aspect-square bg-brand-yellow p-1.5 rounded-lg shadow-xl mb-3">
+                            {/* Inner zoom container */}
+                            <div
+                              ref={previousImageZoom.containerRef}
+                              className="relative w-full h-full overflow-hidden rounded-md cursor-move touch-none"
+                              onTouchStart={previousImageZoom.handleTouchStart}
+                              onTouchMove={previousImageZoom.handleTouchMove}
+                              onTouchEnd={previousImageZoom.handleTouchEnd}
+                              onMouseDown={previousImageZoom.handleMouseDown}
+                              onMouseMove={previousImageZoom.handleMouseMove}
+                              onMouseUp={previousImageZoom.handleMouseUp}
+                              onMouseLeave={previousImageZoom.handleMouseUp}
+                            >
+                              <img
+                                src={previousImageUrl}
+                                alt="Previous capture"
+                                className="w-full h-full object-cover pointer-events-none select-none"
+                                style={{
+                                  transform: `scale(${previousImageZoom.scale}) translate(${previousImageZoom.position.x / previousImageZoom.scale}px, ${previousImageZoom.position.y / previousImageZoom.scale}px)`,
+                                  transition: previousImageZoom.scale === 1 ? 'transform 0.2s ease-out' : 'none',
+                                }}
+                                draggable={false}
+                              />
+
+                              {/* Zoom Indicator */}
+                              {previousImageZoom.scale > 1 && (
+                                <div className="absolute top-2 right-2 bg-black bg-opacity-70 text-white text-xs px-2 py-1 rounded">
+                                  {previousImageZoom.scale.toFixed(1)}x
+                                </div>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Zoom Controls */}
+                          <div className="flex items-center justify-center gap-2">
+                            <button
+                              type="button"
+                              onClick={previousImageZoom.zoomOut}
+                              disabled={previousImageZoom.scale <= 1}
+                              className="bg-gray-700 text-white p-2 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-600 transition-colors"
+                              aria-label="Zoom out"
+                            >
+                              <MinusIcon className="w-5 h-5" />
+                            </button>
+                            <span className="text-dark-text text-sm font-mono min-w-[3rem] text-center">
+                              {previousImageZoom.scale.toFixed(1)}x
+                            </span>
+                            <button
+                              type="button"
+                              onClick={previousImageZoom.zoomIn}
+                              disabled={previousImageZoom.scale >= 4}
+                              className="bg-gray-700 text-white p-2 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-600 transition-colors"
+                              aria-label="Zoom in"
+                            >
+                              <PlusIcon className="w-5 h-5" />
+                            </button>
+                          </div>
+                        </>
+                      ) : null}
                     </div>
                   )}
                 </div>

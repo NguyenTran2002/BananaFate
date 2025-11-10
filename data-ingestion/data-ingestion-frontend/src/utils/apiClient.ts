@@ -219,6 +219,7 @@ export async function lookupBanana(
   batchId?: string;
   lastStage?: string;
   lastCaptureDate?: string;
+  lastObjectPath?: string;
   captureCount?: number;
 }> {
   console.log('[API] Looking up banana:', bananaId);
@@ -330,6 +331,63 @@ export async function getMobileDashboard(): Promise<{
     clearTimeout(timeoutId);
     if (error.name === 'AbortError') {
       console.error('[API] Mobile dashboard timed out after 30 seconds');
+      throw new ApiError(408, 'Request timed out - please check your connection');
+    }
+    throw error;
+  }
+}
+
+/**
+ * Get a signed read URL for viewing a GCS image
+ */
+export async function getSignedReadUrl(
+  objectPath: string
+): Promise<{ signedUrl: string; objectPath: string; expiresIn: number }> {
+  console.log('[API] Requesting signed read URL for:', objectPath);
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+
+  try {
+    const token = getAuthToken();
+    const headers: HeadersInit = {};
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    const response = await fetch(
+      `${BACKEND_URL}/gcs-signed-read-url?object_path=${encodeURIComponent(objectPath)}`,
+      {
+        method: 'GET',
+        headers,
+        signal: controller.signal,
+      }
+    );
+
+    clearTimeout(timeoutId);
+
+    console.log('[API] Signed read URL response:', response.status, response.statusText);
+
+    if (!response.ok) {
+      const error = await response.text();
+      console.error('[API] Signed read URL request failed:', response.status, error);
+
+      // Automatically logout on authentication failures
+      if ((response.status === 401 || response.status === 403) && logoutCallback) {
+        console.error('[API] Authentication failed, logging out automatically');
+        logoutCallback();
+      }
+
+      throw new ApiError(response.status, `Failed to get signed read URL: ${error}`);
+    }
+
+    const result = await response.json();
+    console.log('[API] ✓ Signed read URL generated successfully');
+    return result;
+  } catch (error) {
+    clearTimeout(timeoutId);
+    if (error.name === 'AbortError') {
+      console.error('[API] Signed read URL request timed out after 30 seconds');
       throw new ApiError(408, 'Request timed out - please check your connection');
     }
     throw error;

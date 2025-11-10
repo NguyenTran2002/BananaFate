@@ -1,6 +1,11 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { BananaMetadata } from '../types';
 import { UploadIcon } from './icons/UploadIcon';
+import { getSignedReadUrl } from '../utils/apiClient';
+import { useImageZoom } from '../hooks/useImageZoom';
+import { PlusIcon } from './icons/PlusIcon';
+import { MinusIcon } from './icons/MinusIcon';
+import { SpinnerIcon } from './icons/SpinnerIcon';
 
 interface ConfirmationScreenProps {
   imageDataUrl: string;
@@ -10,6 +15,7 @@ interface ConfirmationScreenProps {
   bananaHistory?: {
     lastStage: string;
     lastCaptureDate: string;
+    lastObjectPath?: string;
     captureCount: number;
   } | null;
   onEdit: () => void;
@@ -29,6 +35,39 @@ const ConfirmationScreen: React.FC<ConfirmationScreenProps> = ({
   onRetake,
   onCancel,
 }) => {
+  // State for previous capture image
+  const [previousImageUrl, setPreviousImageUrl] = useState<string | null>(null);
+  const [loadingPreviousImage, setLoadingPreviousImage] = useState(false);
+  const [previousImageError, setPreviousImageError] = useState<string | null>(null);
+
+  // Zoom hooks for both images
+  const currentImageZoom = useImageZoom();
+  const previousImageZoom = useImageZoom();
+
+  // Fetch previous capture image if available
+  useEffect(() => {
+    const fetchPreviousImage = async () => {
+      if (!bananaHistory?.lastObjectPath) {
+        return;
+      }
+
+      setLoadingPreviousImage(true);
+      setPreviousImageError(null);
+
+      try {
+        const result = await getSignedReadUrl(bananaHistory.lastObjectPath);
+        setPreviousImageUrl(result.signedUrl);
+      } catch (error) {
+        console.error('Failed to fetch previous image:', error);
+        setPreviousImageError('Failed to load previous image');
+      } finally {
+        setLoadingPreviousImage(false);
+      }
+    };
+
+    fetchPreviousImage();
+  }, [bananaHistory?.lastObjectPath]);
+
   // Format file size
   const formatFileSize = (bytes: number): string => {
     if (bytes < 1024) return `${bytes} B`;
@@ -36,25 +75,112 @@ const ConfirmationScreen: React.FC<ConfirmationScreenProps> = ({
     return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
   };
 
+  // Render zoomable image container
+  const renderZoomableImage = (
+    imageUrl: string,
+    title: string,
+    subtitle: string,
+    zoom: ReturnType<typeof useImageZoom>,
+    isLoading?: boolean,
+    error?: string | null
+  ) => (
+    <div className="bg-ocean-surface/50 p-3 rounded-lg">
+      <h3 className="text-sm font-bold mb-2 text-dark-text">{title}</h3>
+      <p className="text-xs text-dark-subtext mb-2">{subtitle}</p>
+
+      {isLoading ? (
+        <div className="aspect-square bg-gray-800 rounded-md flex items-center justify-center">
+          <SpinnerIcon className="w-8 h-8 text-brand-yellow animate-spin" />
+        </div>
+      ) : error ? (
+        <div className="aspect-square bg-gray-800 rounded-md flex items-center justify-center">
+          <p className="text-red-400 text-sm text-center px-4">{error}</p>
+        </div>
+      ) : (
+        <>
+          {/* Outer border container */}
+          <div className="aspect-square bg-brand-yellow p-1.5 rounded-lg shadow-xl mb-3">
+            {/* Inner zoom container */}
+            <div
+              ref={zoom.containerRef}
+              className="relative w-full h-full overflow-hidden rounded-md cursor-move touch-none"
+              onTouchStart={zoom.handleTouchStart}
+              onTouchMove={zoom.handleTouchMove}
+              onTouchEnd={zoom.handleTouchEnd}
+              onMouseDown={zoom.handleMouseDown}
+              onMouseMove={zoom.handleMouseMove}
+              onMouseUp={zoom.handleMouseUp}
+              onMouseLeave={zoom.handleMouseUp}
+            >
+              <img
+                src={imageUrl}
+                alt={title}
+                className="w-full h-full object-cover pointer-events-none select-none"
+                style={{
+                  transform: `scale(${zoom.scale}) translate(${zoom.position.x / zoom.scale}px, ${zoom.position.y / zoom.scale}px)`,
+                  transition: zoom.scale === 1 ? 'transform 0.2s ease-out' : 'none',
+                }}
+                draggable={false}
+              />
+
+              {/* Zoom Indicator */}
+              {zoom.scale > 1 && (
+                <div className="absolute top-2 right-2 bg-black bg-opacity-70 text-white text-xs px-2 py-1 rounded">
+                  {zoom.scale.toFixed(1)}x
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Zoom Controls */}
+          <div className="flex items-center justify-center gap-2">
+            <button
+              onClick={zoom.zoomOut}
+              disabled={zoom.scale <= 1}
+              className="bg-gray-700 text-white p-2 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-600 transition-colors"
+              aria-label="Zoom out"
+            >
+              <MinusIcon className="w-5 h-5" />
+            </button>
+            <span className="text-dark-text text-sm font-mono min-w-[3rem] text-center">
+              {zoom.scale.toFixed(1)}x
+            </span>
+            <button
+              onClick={zoom.zoomIn}
+              disabled={zoom.scale >= 4}
+              className="bg-gray-700 text-white p-2 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-600 transition-colors"
+              aria-label="Zoom in"
+            >
+              <PlusIcon className="w-5 h-5" />
+            </button>
+          </div>
+        </>
+      )}
+    </div>
+  );
+
   return (
     <div className="w-full h-full p-6 overflow-y-auto no-scrollbar">
-      <div className="max-w-sm mx-auto">
+      <div className="max-w-4xl mx-auto">
         <h2 className="text-2xl font-bold text-center mb-4 text-dark-text">Confirm Upload</h2>
         <p className="text-center text-dark-subtext mb-6 text-sm">
           Review your capture details before uploading
         </p>
 
-        {/* Image Thumbnail */}
-        <div className="bg-brand-yellow p-1.5 rounded-lg shadow-xl mb-6">
-          <img
-            src={imageDataUrl}
-            alt="Banana preview"
-            className="w-full aspect-square object-cover rounded-md"
-          />
+        {/* Current Capture Image */}
+        <div className="max-w-sm mx-auto mb-6">
+          {renderZoomableImage(
+            imageDataUrl,
+            'Current Capture',
+            `${metadata.stage} • Just captured`,
+            currentImageZoom
+          )}
         </div>
 
-        {/* Technical Info */}
-        <div className="bg-ocean-surface/50 p-3 rounded-lg mb-4">
+        {/* Metadata and Actions - Centered */}
+        <div className="max-w-sm mx-auto">
+          {/* Technical Info */}
+          <div className="bg-ocean-surface/50 p-3 rounded-lg mb-4">
           <h3 className="text-sm font-bold mb-2 text-dark-subtext">Image Quality</h3>
           <div className="flex justify-between text-sm">
             <span className="text-dark-text">Resolution:</span>
@@ -121,6 +247,20 @@ const ConfirmationScreen: React.FC<ConfirmationScreenProps> = ({
           </div>
         )}
 
+        {/* Previous Capture Image (if exists) */}
+        {previousImageUrl && (
+          <div className="mb-6">
+            {renderZoomableImage(
+              previousImageUrl,
+              'Previous Capture',
+              `${bananaHistory?.lastStage || 'Unknown'} • ${bananaHistory?.lastCaptureDate ? new Date(bananaHistory.lastCaptureDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'Unknown date'}`,
+              previousImageZoom,
+              loadingPreviousImage,
+              previousImageError
+            )}
+          </div>
+        )}
+
         {/* Action Buttons */}
         <div className="space-y-3">
           <button
@@ -152,6 +292,8 @@ const ConfirmationScreen: React.FC<ConfirmationScreenProps> = ({
           >
             Cancel & Go Home
           </button>
+        </div>
+        {/* End Metadata and Actions */}
         </div>
       </div>
     </div>

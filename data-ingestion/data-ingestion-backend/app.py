@@ -304,9 +304,10 @@ async def lookup_banana(banana_id: str, auth: dict = Depends(verify_auth_token))
         collection = get_collection()
 
         # Find the most recent entry for this banana ID
+        # Sort by uploadedAt (ISO timestamp) instead of captureTime (locale string) for accurate chronological ordering
         results = list(collection.find(
             {"bananaId": banana_id}
-        ).sort("captureTime", -1).limit(1))
+        ).sort("uploadedAt", -1).limit(1))
 
         result = results[0] if results else None
 
@@ -322,6 +323,7 @@ async def lookup_banana(banana_id: str, auth: dict = Depends(verify_auth_token))
                 "batchId": result['batchId'],
                 "lastStage": result.get('stage', None),
                 "lastCaptureDate": result.get('captureTime', None),
+                "lastObjectPath": result.get('objectPath', None),
                 "captureCount": capture_count
             }
         else:
