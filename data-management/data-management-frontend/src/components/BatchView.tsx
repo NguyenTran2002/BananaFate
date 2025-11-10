@@ -21,6 +21,7 @@ type ViewMode = 'photos' | 'bananas';
 
 export function BatchView() {
   const [batches, setBatches] = useState<BatchSummary[]>([]);
+  const [sortedBatches, setSortedBatches] = useState<BatchSummary[]>([]);
   const [selectedBatch, setSelectedBatch] = useState<BatchSummary | null>(null);
   const [viewMode, setViewMode] = useState<ViewMode>('photos');
 
@@ -57,6 +58,11 @@ export function BatchView() {
       setLoading(true);
       const data = await listBatches();
       setBatches(data);
+      // Sort batches with natural sorting
+      const sorted = [...data].sort((a, b) =>
+        a.batchId.localeCompare(b.batchId, undefined, { numeric: true, sensitivity: 'base' })
+      );
+      setSortedBatches(sorted);
       setError(null);
     } catch (err: any) {
       setError(err.message || 'Failed to load batches');
@@ -186,9 +192,9 @@ export function BatchView() {
   const sortedBananas = React.useMemo(() => {
     const sorted = [...batchBananas].sort((a, b) => {
       if (sortOrder === 'asc') {
-        return a.bananaId.localeCompare(b.bananaId);
+        return a.bananaId.localeCompare(b.bananaId, undefined, { numeric: true, sensitivity: 'base' });
       } else {
-        return b.bananaId.localeCompare(a.bananaId);
+        return b.bananaId.localeCompare(a.bananaId, undefined, { numeric: true, sensitivity: 'base' });
       }
     });
     return sorted;
@@ -734,7 +740,7 @@ export function BatchView() {
 
       {/* Batch Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {batches.map((batch) => (
+        {sortedBatches.map((batch) => (
           <div
             key={batch.batchId}
             className="bg-ocean-surface rounded-xl p-6 border border-brand-yellow/20
@@ -780,7 +786,7 @@ export function BatchView() {
         ))}
       </div>
 
-      {batches.length === 0 && (
+      {sortedBatches.length === 0 && (
         <div className="text-center py-20">
           <div className="flex justify-center mb-4">
             <BoxIcon className="w-16 h-16 text-dark-subtext" />

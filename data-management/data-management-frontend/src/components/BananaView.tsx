@@ -124,9 +124,9 @@ export function BananaView() {
   const sortedBananas = React.useMemo(() => {
     const sorted = [...bananas].sort((a, b) => {
       if (sortOrder === 'asc') {
-        return a.bananaId.localeCompare(b.bananaId);
+        return a.bananaId.localeCompare(b.bananaId, undefined, { numeric: true, sensitivity: 'base' });
       } else {
-        return b.bananaId.localeCompare(a.bananaId);
+        return b.bananaId.localeCompare(a.bananaId, undefined, { numeric: true, sensitivity: 'base' });
       }
     });
     return sorted;
