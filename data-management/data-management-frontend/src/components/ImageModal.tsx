@@ -6,6 +6,9 @@
 import React, { useState, useEffect } from 'react';
 import { ImageDocument, ImageQuality } from '../types';
 import { getSignedReadUrl, getImageQuality } from '../utils/apiClient';
+import { SpinnerIcon } from './icons/SpinnerIcon';
+import { EditIcon } from './icons/EditIcon';
+import { TrashIcon } from './icons/TrashIcon';
 
 interface ImageModalProps {
   image: ImageDocument;
@@ -86,7 +89,7 @@ export function ImageModal({ image, onClose, onEdit, onDelete, onNext, onPreviou
         <div className="flex-1 flex items-center justify-center min-w-0">
           {loading && (
             <div className="text-center">
-              <div className="text-6xl mb-4 animate-bounce">🍌</div>
+              <SpinnerIcon className="w-16 h-16 mb-4 mx-auto animate-bounce text-brand-yellow" />
               <p className="text-dark-subtext">Loading image...</p>
             </div>
           )}
@@ -265,7 +268,7 @@ export function ImageModal({ image, onClose, onEdit, onDelete, onNext, onPreviou
                     className="flex-1 py-2.5 px-3 bg-brand-yellow text-ocean-deep font-semibold rounded-lg
                              hover:bg-yellow-500 transition-all flex items-center justify-center space-x-1.5 text-sm"
                   >
-                    <span>✏️</span>
+                    <EditIcon className="w-5 h-5" />
                     <span>Edit</span>
                   </button>
                 )}
@@ -277,7 +280,7 @@ export function ImageModal({ image, onClose, onEdit, onDelete, onNext, onPreviou
                              border border-red-500/30 hover:bg-red-500/30 transition-all
                              flex items-center justify-center space-x-1.5 text-sm"
                   >
-                    <span>🗑️</span>
+                    <TrashIcon className="w-5 h-5" />
                     <span>Delete</span>
                   </button>
                 )}

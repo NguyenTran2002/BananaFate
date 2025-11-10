@@ -1,5 +1,6 @@
 import React from 'react';
 import { BananaGuideIcon } from './icons/BananaGuideIcon';
+import { CheckCircleIcon } from './icons/CheckCircleIcon';
 
 interface CollectionProgressProps {
   totalImages: number;
@@ -170,7 +171,7 @@ const CollectionProgress: React.FC<CollectionProgressProps> = ({
       {/* Motivational Messages */}
       {totalImages >= targetImages && (
         <div className="mt-6 p-4 bg-gradient-to-r from-green-50 to-green-100 border-2 border-green-300 rounded-lg text-center">
-          <div className="text-2xl mb-2">🎉</div>
+          <CheckCircleIcon className="w-8 h-8 mb-2 mx-auto text-green-600" />
           <p className="text-green-800 font-bold text-lg">
             Congratulations! You've reached your collection goal!
           </p>
@@ -182,7 +183,7 @@ const CollectionProgress: React.FC<CollectionProgressProps> = ({
 
       {totalImages < targetImages && totalImages >= targetImages * 0.8 && (
         <div className="mt-6 p-4 bg-gradient-to-r from-yellow-50 to-yellow-100 border-2 border-yellow-300 rounded-lg text-center">
-          <div className="text-2xl mb-2">🍌</div>
+          <BananaGuideIcon className="w-8 h-8 mb-2 mx-auto text-yellow-600" />
           <p className="text-yellow-800 font-bold">
             Almost there! Just {targetImages - totalImages} more images to go!
           </p>

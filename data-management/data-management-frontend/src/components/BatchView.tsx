@@ -10,6 +10,10 @@ import { ImageGrid } from './ImageGrid';
 import { ImageModal } from './ImageModal';
 import { EditMetadataModal } from './EditMetadataModal';
 import { DeleteConfirmationModal } from './DeleteConfirmationModal';
+import { BoxIcon } from './icons/BoxIcon';
+import { RefreshIcon } from './icons/RefreshIcon';
+import { TrashIcon } from './icons/TrashIcon';
+import { SpinnerIcon } from './icons/SpinnerIcon';
 
 export function BatchView() {
   const [batches, setBatches] = useState<BatchSummary[]>([]);
@@ -95,7 +99,9 @@ export function BatchView() {
     return (
       <div className="flex items-center justify-center py-20">
         <div className="text-center">
-          <div className="text-6xl mb-4 animate-bounce">📦</div>
+          <div className="flex justify-center mb-4">
+            <SpinnerIcon className="w-16 h-16 text-brand-yellow" />
+          </div>
           <p className="text-dark-subtext">Loading batches...</p>
         </div>
       </div>
@@ -129,9 +135,10 @@ export function BatchView() {
           <button
             onClick={loadBatches}
             className="px-4 py-2 bg-ocean-surface border border-brand-yellow/30 text-dark-text
-                     rounded-lg hover:border-brand-yellow/50 transition-all"
+                     rounded-lg hover:border-brand-yellow/50 transition-all flex items-center space-x-2"
           >
-            🔄 Refresh
+            <RefreshIcon className="w-5 h-5" />
+            <span>Refresh</span>
           </button>
         </div>
 
@@ -151,7 +158,7 @@ export function BatchView() {
                     {formatDate(batch.firstCaptureTime)} - {formatDate(batch.lastCaptureTime)}
                   </p>
                 </div>
-                <div className="text-4xl">📦</div>
+                <BoxIcon className="w-10 h-10 text-brand-yellow" />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
@@ -174,9 +181,10 @@ export function BatchView() {
                   });
                 }}
                 className="mt-4 w-full py-2 bg-red-500/20 text-red-400 rounded-lg border border-red-500/30
-                         hover:bg-red-500/30 transition-all text-sm font-semibold"
+                         hover:bg-red-500/30 transition-all text-sm font-semibold flex items-center justify-center space-x-2"
               >
-                🗑️ Delete Batch
+                <TrashIcon className="w-4 h-4" />
+                <span>Delete Batch</span>
               </button>
             </div>
           ))}
@@ -184,7 +192,9 @@ export function BatchView() {
 
         {batches.length === 0 && (
           <div className="text-center py-20">
-            <div className="text-6xl mb-4">📦</div>
+            <div className="flex justify-center mb-4">
+              <BoxIcon className="w-16 h-16 text-dark-subtext" />
+            </div>
             <p className="text-dark-subtext text-lg">No batches found</p>
           </div>
         )}
@@ -231,9 +241,10 @@ export function BatchView() {
             target: { batchId: selectedBatch.batchId, imageCount: selectedBatch.imageCount },
           })}
           className="px-4 py-2 bg-red-500/20 text-red-400 rounded-lg border border-red-500/30
-                   hover:bg-red-500/30 transition-all font-semibold"
+                   hover:bg-red-500/30 transition-all font-semibold flex items-center space-x-2"
         >
-          🗑️ Delete Batch
+          <TrashIcon className="w-5 h-5" />
+          <span>Delete Batch</span>
         </button>
       </div>
 
@@ -241,7 +252,9 @@ export function BatchView() {
       {loadingImages ? (
         <div className="flex items-center justify-center py-20">
           <div className="text-center">
-            <div className="text-6xl mb-4 animate-bounce">🍌</div>
+            <div className="flex justify-center mb-4">
+              <SpinnerIcon className="w-16 h-16 text-brand-yellow" />
+            </div>
             <p className="text-dark-subtext">Loading images...</p>
           </div>
         </div>

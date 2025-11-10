@@ -7,6 +7,12 @@ import React, { useEffect, useState } from 'react';
 import { getAnalyticsCounts } from '../utils/apiClient';
 import { AnalyticsCounts, NavigationRoute } from '../types';
 import CollectionProgress from './CollectionProgress';
+import { SpinnerIcon } from './icons/SpinnerIcon';
+import { CameraIcon } from './icons/CameraIcon';
+import { BoxIcon } from './icons/BoxIcon';
+import { BananaGuideIcon } from './icons/BananaGuideIcon';
+import { ChartIcon } from './icons/ChartIcon';
+import { RefreshIcon } from './icons/RefreshIcon';
 
 interface DashboardProps {
   onNavigate: (route: NavigationRoute) => void;
@@ -38,7 +44,7 @@ export function Dashboard({ onNavigate }: DashboardProps) {
     return (
       <div className="flex items-center justify-center py-20">
         <div className="text-center">
-          <div className="text-6xl mb-4 animate-bounce">🍌</div>
+          <SpinnerIcon className="w-16 h-16 mb-4 mx-auto animate-bounce text-brand-yellow" />
           <p className="text-dark-subtext">Loading dashboard...</p>
         </div>
       </div>
@@ -64,20 +70,20 @@ export function Dashboard({ onNavigate }: DashboardProps) {
     {
       label: 'Total Images',
       value: counts.totalImages,
-      icon: '📷',
+      icon: <CameraIcon className="w-12 h-12" />,
       color: 'brand-yellow',
     },
     {
       label: 'Batches',
       value: counts.totalBatches,
-      icon: '📦',
+      icon: <BoxIcon className="w-12 h-12" />,
       color: 'brand-green',
       action: () => onNavigate(NavigationRoute.BATCHES),
     },
     {
       label: 'Bananas',
       value: counts.totalBananas,
-      icon: '🍌',
+      icon: <BananaGuideIcon className="w-12 h-12" />,
       color: 'brand-yellow',
       action: () => onNavigate(NavigationRoute.BANANAS),
     },
@@ -102,7 +108,7 @@ export function Dashboard({ onNavigate }: DashboardProps) {
                      transition-all duration-200`}
           >
             <div className="flex items-center justify-between mb-4">
-              <span className="text-5xl">{stat.icon}</span>
+              <div className={`text-${stat.color}`}>{stat.icon}</div>
               <div className={`text-4xl font-bold text-${stat.color}`}>
                 {stat.value}
               </div>
@@ -142,7 +148,7 @@ export function Dashboard({ onNavigate }: DashboardProps) {
                      transition-all text-left"
           >
             <div className="flex items-center space-x-3 mb-2">
-              <span className="text-3xl">📦</span>
+              <BoxIcon className="w-8 h-8 text-brand-yellow" />
               <span className="text-xl font-semibold text-dark-text">View Batches</span>
             </div>
             <p className="text-dark-subtext text-sm">
@@ -157,7 +163,7 @@ export function Dashboard({ onNavigate }: DashboardProps) {
                      transition-all text-left"
           >
             <div className="flex items-center space-x-3 mb-2">
-              <span className="text-3xl">🍌</span>
+              <BananaGuideIcon className="w-8 h-8 text-brand-green" />
               <span className="text-xl font-semibold text-dark-text">View Bananas</span>
             </div>
             <p className="text-dark-subtext text-sm">
@@ -172,7 +178,7 @@ export function Dashboard({ onNavigate }: DashboardProps) {
                      transition-all text-left"
           >
             <div className="flex items-center space-x-3 mb-2">
-              <span className="text-3xl">📈</span>
+              <ChartIcon className="w-8 h-8 text-brand-yellow" />
               <span className="text-xl font-semibold text-dark-text">View Analytics</span>
             </div>
             <p className="text-dark-subtext text-sm">
@@ -187,7 +193,7 @@ export function Dashboard({ onNavigate }: DashboardProps) {
                      transition-all text-left"
           >
             <div className="flex items-center space-x-3 mb-2">
-              <span className="text-3xl">🔄</span>
+              <RefreshIcon className="w-8 h-8 text-dark-subtext" />
               <span className="text-xl font-semibold text-dark-text">Refresh Data</span>
             </div>
             <p className="text-dark-subtext text-sm">

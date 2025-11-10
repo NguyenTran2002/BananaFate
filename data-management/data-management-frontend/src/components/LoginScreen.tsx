@@ -5,6 +5,9 @@
 
 import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { BananaGuideIcon } from './icons/BananaGuideIcon';
+import { EyeIcon } from './icons/EyeIcon';
+import { EyeSlashIcon } from './icons/EyeSlashIcon';
 
 export function LoginScreen() {
   const { login, isLoading, error } = useAuth();
@@ -31,7 +34,9 @@ export function LoginScreen() {
         <div className="bg-ocean-surface rounded-2xl shadow-2xl p-8 border border-brand-yellow/20">
           {/* Logo/Title */}
           <div className="text-center mb-8">
-            <div className="text-6xl mb-4">🍌</div>
+            <div className="flex justify-center mb-4">
+              <BananaGuideIcon className="w-16 h-16 text-brand-yellow" />
+            </div>
             <h1 className="text-3xl font-bold text-brand-yellow mb-2">
               Banana Fate
             </h1>
@@ -67,7 +72,7 @@ export function LoginScreen() {
                            transition-colors"
                   tabIndex={-1}
                 >
-                  {showPassword ? '👁️' : '👁️‍🗨️'}
+                  {showPassword ? <EyeSlashIcon className="w-5 h-5" /> : <EyeIcon className="w-5 h-5" />}
                 </button>
               </div>
             </div>

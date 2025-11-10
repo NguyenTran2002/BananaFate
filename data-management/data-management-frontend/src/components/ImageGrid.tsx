@@ -6,6 +6,9 @@
 import React, { useState, useEffect } from 'react';
 import { ImageDocument } from '../types';
 import { getSignedReadUrl } from '../utils/apiClient';
+import { SpinnerIcon } from './icons/SpinnerIcon';
+import { ErrorIcon } from './icons/ErrorIcon';
+import { BananaGuideIcon } from './icons/BananaGuideIcon';
 
 interface ImageGridProps {
   images: ImageDocument[];
@@ -55,12 +58,12 @@ function ImageThumbnail({
       {/* Image */}
       <div className="w-full h-full flex items-center justify-center bg-ocean-deep">
         {loading && (
-          <div className="text-4xl animate-bounce">🍌</div>
+          <SpinnerIcon className="w-10 h-10 animate-bounce text-brand-yellow" />
         )}
 
         {error && !loading && (
           <div className="text-center p-4">
-            <div className="text-3xl mb-2">❌</div>
+            <ErrorIcon className="w-8 h-8 mb-2 mx-auto text-red-400" />
             <p className="text-xs text-dark-subtext">Failed to load</p>
           </div>
         )}
@@ -95,7 +98,7 @@ export function ImageGrid({ images, onImageClick, emptyMessage = 'No images foun
   if (images.length === 0) {
     return (
       <div className="text-center py-20">
-        <div className="text-6xl mb-4">🍌</div>
+        <BananaGuideIcon className="w-16 h-16 mb-4 mx-auto text-brand-yellow" />
         <p className="text-dark-subtext text-lg">{emptyMessage}</p>
       </div>
     );

@@ -1,5 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { getDeletionAudit, type DeletionAudit } from '../utils/apiClient';
+import { ImageIcon } from './icons/ImageIcon';
+import { BananaGuideIcon } from './icons/BananaGuideIcon';
+import { BoxIcon } from './icons/BoxIcon';
+import { TrashIcon } from './icons/TrashIcon';
 
 export function DeletionHistory() {
   const [audits, setAudits] = useState<DeletionAudit[]>([]);
@@ -48,13 +52,13 @@ export function DeletionHistory() {
   const getOperationIcon = (type: string) => {
     switch (type) {
       case 'image':
-        return '🖼️';
+        return <ImageIcon className="w-5 h-5" />;
       case 'banana':
-        return '🍌';
+        return <BananaGuideIcon className="w-5 h-5" />;
       case 'batch':
-        return '📦';
+        return <BoxIcon className="w-5 h-5" />;
       default:
-        return '🗑️';
+        return <TrashIcon className="w-5 h-5" />;
     }
   };
 
@@ -201,9 +205,9 @@ export function DeletionHistory() {
                         {formatTimestamp(audit.timestamp)}
                       </td>
                       <td className="py-3">
-                        <span className="flex items-center gap-2">
-                          <span>{getOperationIcon(audit.operationType)}</span>
-                          <span className="text-slate-300 capitalize">
+                        <span className="flex items-center gap-2 text-slate-300">
+                          {getOperationIcon(audit.operationType)}
+                          <span className="capitalize">
                             {audit.operationType}
                           </span>
                         </span>

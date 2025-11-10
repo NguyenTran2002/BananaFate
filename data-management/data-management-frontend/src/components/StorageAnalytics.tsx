@@ -6,6 +6,13 @@
 import React, { useEffect, useState } from 'react';
 import { getStorageAnalytics } from '../utils/apiClient';
 import { StorageAnalytics as StorageAnalyticsType, StorageImageInfo } from '../types';
+import { StorageIcon } from './icons/StorageIcon';
+import { RefreshIcon } from './icons/RefreshIcon';
+import { WarningIcon } from './icons/WarningIcon';
+import { MoneyIcon } from './icons/MoneyIcon';
+import { ChartIcon } from './icons/ChartIcon';
+import { CameraIcon } from './icons/CameraIcon';
+import { BananaGuideIcon } from './icons/BananaGuideIcon';
 
 export function StorageAnalytics() {
   const [storage, setStorage] = useState<StorageAnalyticsType | null>(null);
@@ -33,7 +40,7 @@ export function StorageAnalytics() {
     return (
       <div className="flex items-center justify-center py-20">
         <div className="text-center">
-          <div className="text-6xl mb-4 animate-bounce">💾</div>
+          <StorageIcon className="w-16 h-16 mb-4 mx-auto animate-bounce text-brand-yellow" />
           <p className="text-dark-subtext">Loading storage analytics...</p>
         </div>
       </div>
@@ -78,17 +85,19 @@ export function StorageAnalytics() {
         <button
           onClick={loadStorageAnalytics}
           className="px-4 py-2 bg-ocean-surface border border-brand-yellow/30 text-dark-text
-                   rounded-lg hover:border-brand-yellow/50 transition-all"
+                   rounded-lg hover:border-brand-yellow/50 transition-all flex items-center space-x-2"
         >
-          🔄 Refresh
+          <RefreshIcon className="w-5 h-5" />
+          <span>Refresh</span>
         </button>
       </div>
 
       {/* Warning if images without size */}
       {storage.imagesWithoutSize > 0 && (
-        <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-4">
+        <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-4 flex items-start space-x-3">
+          <WarningIcon className="w-6 h-6 flex-shrink-0 text-yellow-400" />
           <p className="text-yellow-400">
-            ⚠️ {storage.imagesWithoutSize} images are missing file size data. Run the backfill
+            {storage.imagesWithoutSize} images are missing file size data. Run the backfill
             script to update.
           </p>
         </div>
@@ -99,7 +108,7 @@ export function StorageAnalytics() {
         {/* Total Storage */}
         <div className="bg-ocean-surface rounded-xl p-6 border border-brand-yellow/20">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-4xl">💾</span>
+            <StorageIcon className="w-10 h-10 text-brand-yellow" />
             <div className="text-3xl font-bold text-brand-yellow">
               {storage.totalStorageFormatted}
             </div>
@@ -113,7 +122,7 @@ export function StorageAnalytics() {
         {/* Average per Photo */}
         <div className="bg-ocean-surface rounded-xl p-6 border border-brand-green/20">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-4xl">📷</span>
+            <CameraIcon className="w-10 h-10 text-brand-green" />
             <div className="text-3xl font-bold text-brand-green">
               {storage.averagePerPhotoFormatted}
             </div>
@@ -127,7 +136,7 @@ export function StorageAnalytics() {
         {/* Average per Banana */}
         <div className="bg-ocean-surface rounded-xl p-6 border border-brand-yellow/20">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-4xl">🍌</span>
+            <BananaGuideIcon className="w-10 h-10 text-brand-yellow" />
             <div className="text-3xl font-bold text-brand-yellow">
               {storage.averagePerBananaFormatted}
             </div>
@@ -141,7 +150,7 @@ export function StorageAnalytics() {
         {/* Estimated Monthly Cost */}
         <div className="bg-ocean-surface rounded-xl p-6 border border-green-500/20">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-4xl">💰</span>
+            <MoneyIcon className="w-10 h-10 text-green-400" />
             <div className="text-3xl font-bold text-green-400">
               ${storage.estimatedMonthlyCostUSD.toFixed(4)}
             </div>
@@ -156,7 +165,7 @@ export function StorageAnalytics() {
         {/* Largest Images */}
         <div className="bg-ocean-surface rounded-xl p-6 border border-red-500/20">
           <h3 className="text-xl font-bold text-red-400 mb-4 flex items-center">
-            <span className="mr-2">📈</span>
+            <ChartIcon className="w-6 h-6 mr-2" />
             Largest Images
           </h3>
           {storage.largestImages.length > 0 ? (
@@ -177,7 +186,7 @@ export function StorageAnalytics() {
         {/* Smallest Images */}
         <div className="bg-ocean-surface rounded-xl p-6 border border-blue-500/20">
           <h3 className="text-xl font-bold text-blue-400 mb-4 flex items-center">
-            <span className="mr-2">📉</span>
+            <ChartIcon className="w-6 h-6 mr-2" />
             Smallest Images
           </h3>
           {storage.smallestImages.length > 0 ? (

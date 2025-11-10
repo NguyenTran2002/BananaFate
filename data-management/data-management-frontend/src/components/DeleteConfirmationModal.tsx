@@ -6,6 +6,12 @@
 import React, { useState } from 'react';
 import { DeleteType } from '../types';
 import { deleteImage, deleteBanana, deleteBatch } from '../utils/apiClient';
+import { TrashIcon } from './icons/TrashIcon';
+import { BananaGuideIcon } from './icons/BananaGuideIcon';
+import { BoxIcon } from './icons/BoxIcon';
+import { CheckCircleIcon } from './icons/CheckCircleIcon';
+import { WarningIcon } from './icons/WarningIcon';
+import { ImageIcon } from './icons/ImageIcon';
 
 interface DeleteConfirmationModalProps {
   type: DeleteType;
@@ -31,7 +37,7 @@ export function DeleteConfirmationModal({ type, target, onClose, onSuccess }: De
       case 'image':
         return {
           title: 'Delete Image',
-          icon: '🗑️',
+          icon: <ImageIcon className="w-16 h-16" />,
           message: 'Are you sure you want to delete this image?',
           confirmPhrase: 'DELETE IMAGE',
           warningLevel: 'medium',
@@ -40,7 +46,12 @@ export function DeleteConfirmationModal({ type, target, onClose, onSuccess }: De
       case 'banana':
         return {
           title: 'Delete All Banana Images',
-          icon: '🍌🗑️',
+          icon: (
+            <div className="flex items-center justify-center space-x-2">
+              <BananaGuideIcon className="w-12 h-12" />
+              <TrashIcon className="w-12 h-12" />
+            </div>
+          ),
           message: `Delete all ${target.imageCount || '?'} images of banana ${target.bananaId}?`,
           confirmPhrase: 'DELETE BANANA',
           warningLevel: 'high',
@@ -49,7 +60,12 @@ export function DeleteConfirmationModal({ type, target, onClose, onSuccess }: De
       case 'batch':
         return {
           title: 'Delete Entire Batch',
-          icon: '📦🗑️',
+          icon: (
+            <div className="flex items-center justify-center space-x-2">
+              <BoxIcon className="w-12 h-12" />
+              <TrashIcon className="w-12 h-12" />
+            </div>
+          ),
           message: `Delete the entire batch "${target.batchId}"?`,
           confirmPhrase: 'DELETE BATCH',
           warningLevel: 'critical',
@@ -175,7 +191,7 @@ export function DeleteConfirmationModal({ type, target, onClose, onSuccess }: De
         }}
       >
         <div className="bg-ocean-surface rounded-xl p-8 max-w-md w-full text-center">
-          <div className="text-6xl mb-4">✅</div>
+          <CheckCircleIcon className="w-16 h-16 mb-4 mx-auto text-brand-green" />
           <h2 className="text-2xl font-bold text-brand-yellow mb-4">Deleted Successfully</h2>
           <p className="text-dark-subtext mb-2">
             {deletedCount} {deletedCount === 1 ? 'image' : 'images'} deleted
@@ -197,7 +213,7 @@ export function DeleteConfirmationModal({ type, target, onClose, onSuccess }: De
       <div className={`bg-ocean-surface rounded-xl p-8 max-w-lg w-full border-2 ${getBorderColor()}`}>
         {/* Header */}
         <div className="text-center mb-6">
-          <div className="text-6xl mb-4">{info.icon}</div>
+          <div className="mb-4 text-red-400 flex items-center justify-center">{info.icon}</div>
           <h2 className="text-3xl font-bold text-red-400 mb-2">{info.title}</h2>
           <p className="text-dark-text text-lg">{info.message}</p>
         </div>
@@ -205,7 +221,7 @@ export function DeleteConfirmationModal({ type, target, onClose, onSuccess }: De
         {/* Warning Box */}
         <div className={`${getBgColor()} border ${getBorderColor()} rounded-lg p-4 mb-6`}>
           <div className="flex items-start space-x-3">
-            <div className="text-2xl">⚠️</div>
+            <WarningIcon className="w-6 h-6 flex-shrink-0 text-red-400" />
             <div>
               <p className="text-red-400 font-semibold mb-2">Warning: This action is irreversible</p>
               <p className="text-dark-subtext text-sm">{info.impact}</p>

@@ -7,6 +7,7 @@ import React, { useState } from 'react';
 import { ImageDocument, UpdateMetadataRequest, RipenessStage } from '../types';
 import { updateMetadata } from '../utils/apiClient';
 import { QuestionMarkIcon } from './icons/QuestionMarkIcon';
+import { CheckCircleIcon } from './icons/CheckCircleIcon';
 import RipenessGuideModal from './RipenessGuideModal';
 
 interface EditMetadataModalProps {
@@ -244,7 +245,7 @@ export function EditMetadataModal({ image, onClose, onSuccess }: EditMetadataMod
       >
         <div className="bg-ocean-surface rounded-xl p-8 max-w-3xl w-full max-h-[90vh] overflow-y-auto custom-scrollbar">
           <div className="text-center mb-6">
-            <div className="text-6xl mb-4">✅</div>
+            <CheckCircleIcon className="w-16 h-16 mb-4 mx-auto text-brand-green" />
             <h2 className="text-3xl font-bold text-brand-yellow mb-2">Metadata Updated Successfully</h2>
             <p className="text-dark-subtext">The following changes were applied:</p>
           </div>

@@ -12,6 +12,9 @@ import { BatchView } from './components/BatchView';
 import { BananaView } from './components/BananaView';
 import { Analytics } from './components/Analytics';
 import { NavigationRoute } from './types';
+import { SpinnerIcon } from './components/icons/SpinnerIcon';
+import { WarningIcon } from './components/icons/WarningIcon';
+import { CloseIcon } from './components/icons/CloseIcon';
 
 function AppContent() {
   const { isAuthenticated, isLoading, tokenExpiryWarning, dismissExpiryWarning } = useAuth();
@@ -22,7 +25,9 @@ function AppContent() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-ocean-deep">
         <div className="text-center">
-          <div className="text-6xl mb-4 animate-bounce">🍌</div>
+          <div className="flex justify-center mb-4">
+            <SpinnerIcon className="w-16 h-16 text-brand-yellow" />
+          </div>
           <p className="text-dark-subtext">Loading...</p>
         </div>
       </div>
@@ -41,14 +46,17 @@ function AppContent() {
       {tokenExpiryWarning && (
         <div className="fixed top-0 left-0 right-0 z-50 bg-yellow-500 text-gray-900 p-3 shadow-lg">
           <div className="max-w-7xl mx-auto flex items-center justify-between">
-            <p className="text-sm font-medium">
-              ⚠️ Your session will expire soon. Please save your work and log in again.
-            </p>
+            <div className="flex items-center space-x-2">
+              <WarningIcon className="w-5 h-5" />
+              <p className="text-sm font-medium">
+                Your session will expire soon. Please save your work and log in again.
+              </p>
+            </div>
             <button
               onClick={dismissExpiryWarning}
-              className="text-gray-900 hover:text-gray-700 font-bold ml-4"
+              className="text-gray-900 hover:text-gray-700 ml-4"
             >
-              ✕
+              <CloseIcon className="w-5 h-5" />
             </button>
           </div>
         </div>
